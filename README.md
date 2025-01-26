@@ -1,2 +1,3 @@
 # cem-utilities
-These are a set of tools of retrieving and trsnforming data from the Custom Elements Manifest
+
+These are a set of tools of retrieving and transforming data from the Custom Elements Manifest.

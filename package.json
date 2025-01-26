@@ -1,0 +1,61 @@
+{
+  "name": "@wc-workbench/cem-utilities",
+  "version": "1.0.0",
+  "description": "These are a set of tools of retrieving and transforming data from the Custom Elements Manifest",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --dts --format cjs,esm",
+    "deploy": "npm run build && npm publish",
+    "format": "prettier . --write",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest --run",
+    "prepare": "husky install"
+  },
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wc-workbench/cem-utilities.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-workbench/cem-utilities/issues"
+  },
+  "homepage": "https://github.com/wc-workbench/cem-utilities/README.md",
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "custom-elements-manifest": "2.1.0",
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "3.4.2",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
+  },
+  "keywords": [
+    "custom-elements",
+    "custom-elements-manifest",
+    "web-components",
+    "components",
+    "cem"
+  ],
+  "lint-staged": {
+    "*.ts": "eslint --cache --fix",
+    "*.--write": "prettier --write"
+  }
+}
