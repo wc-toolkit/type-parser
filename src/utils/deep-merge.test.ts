@@ -111,13 +111,13 @@ describe("mergeDeep", () => {
   });
   test("should use the generic to strongly type the result", () => {
     type Target = {
-      a?: number,
-      b?: number,
+      a?: number;
+      b?: number;
       c?: {
-        d?: number,
-        e?: number,
-        f?: number[],
-      },
+        d?: number;
+        e?: number;
+        f?: number[];
+      };
     };
 
     const target = {
