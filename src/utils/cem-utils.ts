@@ -1,4 +1,5 @@
 import type * as cem from "custom-elements-manifest";
+import { ComponentEvent, Method } from "./types";
 
 export const EXCLUDED_TYPES = [
   "any",
@@ -87,16 +88,34 @@ export function getComponentPublicProperties(component: cem.CustomElement) {
  */
 export function getComponentPublicMethods(
   component: cem.CustomElement
-): cem.ClassMethod[] {
-  return (component?.members?.filter(
-    (member) =>
-      member.kind === "method" &&
-      member.privacy !== "private" &&
-      member.privacy !== "protected" &&
-      !member.name.startsWith("#")
-  ) || []) as cem.ClassMethod[];
+): Method[] {
+  const getParameter = (p: cem.Parameter) =>
+    p.name + getParamType(p) + getParamDefaultValue(p);
+  const getParamType = (p: cem.Parameter) =>
+    p.type?.text ? `${p.optional ? "?" : ""}: ${p.type?.text}` : "";
+  const getParamDefaultValue = (p: cem.Parameter) =>
+    p.default ? ` = ${p.default}` : "";
+
+  return (
+    // filter to return only public methods
+    component?.members?.filter(
+      (member) =>
+        member.kind === "method" &&
+        member.privacy !== "private" &&
+        member.privacy !== "protected" &&
+        !member.name.startsWith("#")
+    ) as Method[]
+  )?.map((m) => {
+    // reconstruct method type
+    m.type = {
+      text: `${m.name}(${m.parameters?.map((p) => getParameter(p)).join(", ") || ""}) => ${m.return?.type?.text || "void"}`,
+    };
+
+    return m;
+  });
 }
 
+/** The type used to define the configuration options for the `getComponentEventsWithType` function */
 export type EventOptions = {
   /** The name of the property where custom detail type is stored */
   customEventDetailTypePropName?: string;
@@ -113,7 +132,7 @@ export type EventOptions = {
 export function getComponentEventsWithType(
   component: cem.CustomElement,
   options: EventOptions = {}
-) {
+): ComponentEvent[] | void[] {
   const events = component?.events?.map((e) => {
     const type: string =
       (e as unknown as Record<string, cem.Type>)[
@@ -148,7 +167,7 @@ export function getComponentEventsWithType(
 export function getCustomEventDetailTypes(
   component: cem.CustomElement,
   excludedTypes?: string[]
-) {
+): (string | undefined)[] {
   const types =
     component?.events
       ?.map((e) => {
@@ -167,5 +186,5 @@ export function getCustomEventDetailTypes(
       })
       ?.filter((e) => e !== undefined && !e?.startsWith("HTML")) || [];
 
-  return types?.length ? [...new Set(types)] : undefined;
+  return types?.length ? [...new Set(types)] : [];
 }

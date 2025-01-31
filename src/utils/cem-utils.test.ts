@@ -141,6 +141,18 @@ describe("getPublicMethods", () => {
     // Assert
     expect(methods.length).toEqual(5);
   });
+
+  test("should return 2 public methods for `SlButton`", () => {
+    // Arrange
+    const component = getComponentByClassName(shoelaceCem, "SlButton");
+
+    // Act
+    const methods = getComponentPublicMethods(component!);
+    const validityEvent = methods.find((m) => m.name === "setCustomValidity");
+
+    // Assert
+    expect(validityEvent?.type.text).toEqual('setCustomValidity(message: string) => void');
+  });
 });
 
 describe("getComponentEventsWithType", () => {
