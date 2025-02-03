@@ -78,7 +78,7 @@ export function getComponentPublicProperties(component: cem.CustomElement) {
       member.privacy !== "protected" &&
       !member.static &&
       !member.name.startsWith("#")
-  ) || []) as cem.ClassMember[];
+  ) || []) as cem.ClassField[];
 }
 
 /**
