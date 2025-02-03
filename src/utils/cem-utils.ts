@@ -98,21 +98,23 @@ export function getComponentPublicMethods(
 
   return (
     // filter to return only public methods
-    component?.members?.filter(
-      (member) =>
-        member.kind === "method" &&
-        member.privacy !== "private" &&
-        member.privacy !== "protected" &&
-        !member.name.startsWith("#")
-    ) as Method[]
-  )?.map((m) => {
-    // reconstruct method type
-    m.type = {
-      text: `${m.name}(${m.parameters?.map((p) => getParameter(p)).join(", ") || ""}) => ${m.return?.type?.text || "void"}`,
-    };
+    (
+      component?.members?.filter(
+        (member) =>
+          member.kind === "method" &&
+          member.privacy !== "private" &&
+          member.privacy !== "protected" &&
+          !member.name.startsWith("#")
+      ) as Method[]
+    )?.map((m) => {
+      // reconstruct method type
+      m.type = {
+        text: `${m.name}(${m.parameters?.map((p) => getParameter(p)).join(", ") || ""}) => ${m.return?.type?.text || "void"}`,
+      };
 
-    return m;
-  });
+      return m;
+    })
+  );
 }
 
 /** The type used to define the configuration options for the `getComponentEventsWithType` function */
@@ -167,7 +169,7 @@ export function getComponentEventsWithType(
 export function getCustomEventDetailTypes(
   component: cem.CustomElement,
   excludedTypes?: string[]
-): (string | undefined)[] {
+): string[] {
   const types =
     component?.events
       ?.map((e) => {
@@ -186,5 +188,5 @@ export function getCustomEventDetailTypes(
       })
       ?.filter((e) => e !== undefined && !e?.startsWith("HTML")) || [];
 
-  return types?.length ? [...new Set(types)] : [];
+  return (types?.length ? [...new Set(types)] : []) as string[];
 }

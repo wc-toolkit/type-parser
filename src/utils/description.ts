@@ -188,9 +188,9 @@ export function getApiByOrderOption(
   | AttributeAndProperty[] {
   switch (api) {
     case "attributes":
-      return (component.attributes as Attribute[]) || [];
+      return component.attributes || ([] as Attribute[]);
     case "properties":
-      return (getComponentPublicProperties(component) as Property[]) || [];
+      return getComponentPublicProperties(component) || ([] as Property[]);
     case "attrsAndProps": {
       return getAttrsAndProps(component);
     }
@@ -198,17 +198,17 @@ export function getApiByOrderOption(
       return getPropsOnly(component);
     }
     case "events":
-      return (component.events as ComponentEvent[]) || [];
+      return component.events || ([] as ComponentEvent[]);
     case "methods":
-      return (getComponentPublicMethods(component) as Method[]) || [];
+      return getComponentPublicMethods(component) as Method[];
     case "slots":
-      return (component.slots as Slot[]) || [];
+      return component.slots || ([] as Slot[]);
     case "cssProps":
-      return (component.cssProperties as CssCustomProperty[]) || [];
+      return component.cssProperties || ([] as CssCustomProperty[]);
     case "cssParts":
-      return (component.cssParts as CssPart[]) || [];
+      return component.cssParts || ([] as CssPart[]);
     case "cssState":
-      return (component.cssCustomStates as CssCustomState[]) || [];
+      return component.cssStates || ([] as CssCustomState[]);
     default:
       return [];
   }
@@ -261,9 +261,9 @@ export function getAttrsAndProps(component: Component): AttributeAndProperty[] {
 export function getPropsOnly(component: Component): Property[] {
   const props = getComponentPublicProperties(component) || [];
   const attrs = component.attributes?.map((attr) => attr.name) || [];
-  return (
-    (props?.filter((prop) => !attrs.includes(prop.name)) as Property[]) || []
-  );
+  return props?.filter(
+    (prop) => !attrs.includes(prop.name) || []
+  ) as Property[];
 }
 
 /**
