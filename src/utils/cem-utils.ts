@@ -132,7 +132,7 @@ export type EventOptions = {
 export function getComponentEventsWithType(
   component: cem.CustomElement,
   options: EventOptions = {}
-): ComponentEvent[] | void[] {
+): ComponentEvent[] {
   const events = component?.events?.map((e) => {
     const type: string =
       (e as unknown as Record<string, cem.Type>)[
@@ -153,7 +153,7 @@ export function getComponentEventsWithType(
     };
   });
 
-  return events || [];
+  return (events || []) as ComponentEvent[];
 }
 
 /**
