@@ -2,7 +2,7 @@ import {
   getComponentPublicMethods,
   getComponentPublicProperties,
 } from "./cem-utils";
-import {
+import type {
   Attribute,
   Component,
   CssCustomProperty,
@@ -12,6 +12,7 @@ import {
   Method,
   Property,
   Slot,
+  AttributeAndProperty,
 } from "./types";
 
 export type ComponentApiOptions<T = unknown> = {
@@ -20,6 +21,7 @@ export type ComponentApiOptions<T = unknown> = {
   template?: (api?: T[]) => string;
 };
 
+/** Available options for setting the order of the docs APIs */
 export type ApiOrderOption =
   | "attributes"
   | "properties"
@@ -32,9 +34,27 @@ export type ApiOrderOption =
   | "cssParts"
   | "cssState";
 
+/** Available options for configuring the way the components description is rendered */
 export type ComponentDescriptionOptions = {
+  /**
+   * The order in which the documentation for each of the APIs will be rendered
+   * If a key is not provided, it will not be rendered
+   * @default ["attrsAndProps", "events", "methods", "slots", "cssProps", "cssParts", "cssState"]
+   */
   order?: Array<ApiOrderOption>;
+  /**
+   * The source of the component description
+   * @default "description"
+   */
   descriptionSrc?: "description" | "summary" | (string & {});
+  /**
+   * The type of the component description
+   * @default "parsedType"
+   */
+  altType?: string;
+  /**
+   * The options for each component API
+   */
   apis?: {
     attributes?: ComponentApiOptions<Attribute>;
     properties?: ComponentApiOptions<Property>;
@@ -51,10 +71,7 @@ export type ComponentDescriptionOptions = {
 
 export const defaultDescriptionOptions: ComponentDescriptionOptions = {
   order: [
-    "attributes",
-    "properties",
     "attrsAndProps",
-    "propsOnly",
     "events",
     "methods",
     "slots",
@@ -84,12 +101,12 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
       label: "Attributes & Properties",
       description:
         "HTML attributes and properties that can be applied to this element.",
-      template: (api?: Attribute[]) =>
+      template: (api?: AttributeAndProperty[]) =>
         api
           ?.map(
-            (attr) =>
-              `- \`${attr.name}\`/\`${attr.fieldName}\`: ${attr.description} ${
-                attr.attribute ? "(attribute)" : "(property)"
+            (prop) =>
+              `- \`${prop.attrName}\`/\`${prop.propName}\`: ${prop.description} ${
+                !prop.attrName ? "(property only)" : ""
               }`
           )
           .join("\n") || "",
@@ -167,21 +184,18 @@ export function getApiByOrderOption(
   | Slot[]
   | CssCustomProperty[]
   | CssPart[]
-  | CssCustomState[] {
+  | CssCustomState[]
+  | AttributeAndProperty[] {
   switch (api) {
     case "attributes":
       return (component.attributes as Attribute[]) || [];
     case "properties":
       return (getComponentPublicProperties(component) as Property[]) || [];
-    case "attrsAndProps":
-      return (component.attributes as Attribute[]) || [];
+    case "attrsAndProps": {
+      return getAttrsAndProps(component);
+    }
     case "propsOnly": {
-      const props = getComponentPublicProperties(component) || [];
-      const attrs = component.attributes?.map((attr) => attr.name) || [];
-      return (
-        (props?.filter((prop) => !attrs.includes(prop.name)) as Property[]) ||
-        []
-      );
+      return getPropsOnly(component);
     }
     case "events":
       return (component.events as ComponentEvent[]) || [];
@@ -200,6 +214,65 @@ export function getApiByOrderOption(
   }
 }
 
+/**
+ * Gets a combined list of public attributes and properties for a component.
+ * @param {Component} component
+ * @returns {AttributeAndProperty[]}
+ */
+export function getAttrsAndProps(component: Component): AttributeAndProperty[] {
+  const attributes =
+    component.attributes?.map((attr) => {
+      return {
+        attrName: attr.name,
+        propName: attr.fieldName,
+        summary: attr.summary,
+        description: attr.description,
+        inheritedFrom: attr.inheritedFrom,
+        type: attr.type,
+        default: attr.default,
+        deprecated: attr.deprecated,
+        static: false,
+        source: undefined,
+        readonly: false,
+      };
+    }) || [];
+  const properties = getComponentPublicProperties(component)
+    .filter((prop) => {
+      return !attributes?.map((attr) => attr.propName).includes(prop.name);
+    })
+    .map((prop) => {
+      return {
+        attrName: undefined,
+        propName: prop.name,
+        summary: prop.summary,
+        description: prop.description,
+        inheritedFrom: prop.inheritedFrom,
+        type: prop.type,
+        default: prop.default,
+        deprecated: prop.deprecated,
+        static: prop.static,
+        source: prop.source,
+        readonly: prop.readonly,
+      };
+    });
+  return [...attributes, ...properties];
+}
+
+export function getPropsOnly(component: Component): Property[] {
+  const props = getComponentPublicProperties(component) || [];
+  const attrs = component.attributes?.map((attr) => attr.name) || [];
+  return (
+    (props?.filter((prop) => !attrs.includes(prop.name)) as Property[]) || []
+  );
+}
+
+/**
+ * Gets the template for a component's description based on the options provided.
+ * @param {Component} component CEM component/declaration object
+ * @param {ComponentDescriptionOptions} options ComponentDescriptionOptions
+ * @param {boolean} isComment prepares comment to be inserted into a multiline JS comment
+ * @returns string
+ */
 export function getComponentDetailsTemplate(
   component: Component,
   options: ComponentDescriptionOptions,
