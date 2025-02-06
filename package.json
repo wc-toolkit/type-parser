@@ -36,7 +36,7 @@
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-utilities/issues"
   },
-  "homepage": "https://github.com/wc-toolkit/cem-utilities/README.md",
+  "homepage": "https://wc-toolkit.com/cem-utilities/overview",
   "devDependencies": {
     "@eslint/js": "^9.19.0",
     "custom-elements-manifest": "2.1.0",

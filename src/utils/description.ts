@@ -15,9 +15,13 @@ import type {
   AttributeAndProperty,
 } from "./types";
 
+/** A generic type for creating customized docs for components APIs */
 export type ComponentApiOptions<T = unknown> = {
-  label?: string;
+  /** The section heading for the API */
+  heading?: string;
+  /** Additional section description for the API */
   description?: string;
+  /** A template for rendering the API documentation */
   template?: (api?: T[]) => string;
 };
 
@@ -82,7 +86,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
   descriptionSrc: "description",
   apis: {
     attributes: {
-      label: "Attributes",
+      heading: "Attributes",
       description: "HTML attributes that can be applied to this element.",
       template: (api?: Attribute[]) =>
         api
@@ -90,7 +94,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     properties: {
-      label: "Properties",
+      heading: "Properties",
       description: "Properties and methods provided by the component.",
       template: (api?: Property[]) =>
         api
@@ -98,7 +102,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     attrsAndProps: {
-      label: "Attributes & Properties",
+      heading: "Attributes & Properties",
       description:
         "HTML attributes and properties that can be applied to this element.",
       template: (api?: AttributeAndProperty[]) =>
@@ -112,7 +116,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     propsOnly: {
-      label: "Properties",
+      heading: "Properties",
       description: "Properties that can be applied to this element.",
       template: (api?: Property[]) =>
         api
@@ -120,7 +124,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     events: {
-      label: "Events",
+      heading: "Events",
       description: "Events emitted by the component.",
       template: (api?: ComponentEvent[]) =>
         api
@@ -128,7 +132,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     methods: {
-      label: "Methods",
+      heading: "Methods",
       description: "Methods provided by the component.",
       template: (api?: Method[]) =>
         api
@@ -136,7 +140,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     slots: {
-      label: "Slots",
+      heading: "Slots",
       description: "Slots provided by the component.",
       template: (api?: Slot[]) =>
         api
@@ -144,7 +148,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     cssProps: {
-      label: "CSS Custom Properties",
+      heading: "CSS Custom Properties",
       description: "CSS custom properties that can be applied to this element.",
       template: (api?: CssCustomProperty[]) =>
         api
@@ -155,7 +159,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     cssParts: {
-      label: "CSS Parts",
+      heading: "CSS Parts",
       description: "CSS parts provided by the component.",
       template: (api?: CssPart[]) =>
         api
@@ -163,7 +167,7 @@ export const defaultDescriptionOptions: ComponentDescriptionOptions = {
           .join("\n") || "",
     },
     cssState: {
-      label: "CSS Custom States",
+      heading: "CSS Custom States",
       description: "CSS custom states that can be applied to this element.",
       template: (api?: CssCustomState[]) =>
         api
