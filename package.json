@@ -58,8 +58,5 @@
   "lint-staged": {
     "*.ts": "eslint --cache --fix",
     "*.--write": "prettier --write"
-  },
-  "dependencies": {
-    "sharp": "^0.33.5"
   }
 }
