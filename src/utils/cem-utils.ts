@@ -1,7 +1,7 @@
 import type * as cem from "custom-elements-manifest";
-import { ComponentEvent, Method } from "./types";
+import { ComponentEvent, Method, Property } from "./types";
 
-export const EXCLUDED_TYPES = [
+export const JS_TYPES = new Set([
   "any",
   "bigint",
   "boolean",
@@ -12,13 +12,38 @@ export const EXCLUDED_TYPES = [
   "Symbol",
   "undefined",
   "unknown",
-];
+]);
+
+export const DOM_EVENTS = new Set([
+  "AnimationEvent",
+  "BeforeUnloadEvent",
+  "ClipboardEvent",
+  "DragEvent",
+  "Event",
+  "FocusEvent",
+  "HashChangeEvent",
+  "InputEvent",
+  "KeyboardEvent",
+  "MessageEvent",
+  "MouseEvent",
+  "MutationObserver",
+  "PageTransitionEvent",
+  "PointerEvent",
+  "PopStateEvent",
+  "ProgressEvent",
+  "StorageEvent",
+  "TouchEvent",
+  "TransitionEvent",
+  "UIEvent",
+  "WebGLContextEvent",
+  "WheelEvent",
+]);
 
 /**
  * Gets a list of all components from a Custom Elements Manifest object
  * @param customElementsManifest
  * @param exclude an array of component names to exclude
- * @returns CustomElement[]
+ * @returns {Array<CustomElement>} an array of components
  */
 export function getAllComponents(
   customElementsManifest: unknown,
@@ -39,7 +64,7 @@ export function getAllComponents(
  * Gets a component from a CEM object based on the class name
  * @param customElementsManifest CEM object
  * @param exclude and array of component names to exclude
- * @returns Component
+ * @returns {Component}
  */
 export function getComponentByClassName(
   customElementsManifest: unknown,
@@ -54,7 +79,7 @@ export function getComponentByClassName(
  * Gets a component from a CEM object based on the tag name
  * @param customElementsManifest CEM object
  * @param exclude and array of component names to exclude
- * @returns Component
+ * @returns {Component}
  */
 export function getComponentByTagName(
   customElementsManifest: unknown,
@@ -68,7 +93,7 @@ export function getComponentByTagName(
 /**
  * Gets a list of public properties from a CEM component
  * @param component CEM component/declaration object
- * @returns an array of public properties for a given component
+ * @returns {Array<Property>} an array of public properties for a given component
  */
 export function getComponentPublicProperties(component: cem.CustomElement) {
   return (component?.members?.filter(
@@ -78,13 +103,13 @@ export function getComponentPublicProperties(component: cem.CustomElement) {
       member.privacy !== "protected" &&
       !member.static &&
       !member.name.startsWith("#")
-  ) || []) as cem.ClassField[];
+  ) || []) as Property[];
 }
 
 /**
  * Get all public methods for a component
  * @param component CEM component/declaration object
- * @returns ClassMethod[]
+ * @returns {Array<ClassMethod>} an array of methods for a given component
  */
 export function getComponentPublicMethods(
   component: cem.CustomElement
@@ -128,8 +153,8 @@ export type EventOptions = {
 /**
  * Get all events for a component with the complete event type
  * @param component CEM component/declaration object
- * @param options {EventOptions} options for custom event detail type and custom event type
- * @returns Event[]
+ * @param {EventOptions} options options for custom event detail type and custom event type
+ * @returns {Array<ComponentEvent>} an array of events for a given component
  */
 export function getComponentEventsWithType(
   component: cem.CustomElement,
@@ -143,9 +168,11 @@ export function getComponentEventsWithType(
 
     const eventType = options.overrideCustomEventType
       ? type || "CustomEvent"
-      : type
-        ? `CustomEvent<${type}>`
-        : "CustomEvent";
+      : DOM_EVENTS.has(type)
+        ? type
+        : type
+          ? `CustomEvent<${type}>`
+          : "CustomEvent";
 
     return {
       ...e,
@@ -178,8 +205,10 @@ export function getCustomEventDetailTypes(
           .replace(" | undefined", "");
         return eventType &&
           !excludedTypes?.includes(eventType) &&
-          !EXCLUDED_TYPES.includes(eventType) &&
+          !JS_TYPES.has(eventType) &&
+          !DOM_EVENTS.has(eventType) &&
           !eventType.includes("<") &&
+          !eventType.includes(">") &&
           !eventType.includes(`{`) &&
           !eventType.includes("'") &&
           !eventType.includes(`"`)

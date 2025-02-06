@@ -1,7 +1,7 @@
 {
   "name": "@wc-toolkit/cem-utilities",
   "version": "1.0.0",
-  "description": "These are a set of tools of retrieving and transforming data from the Custom Elements Manifest",
+  "description": "A set of tools for retrieving and transforming data from the Custom Elements Manifest",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
