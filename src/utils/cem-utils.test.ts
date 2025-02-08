@@ -8,8 +8,8 @@ import {
   getComponentPublicProperties,
   getCustomEventDetailTypes,
 } from "./cem-utils";
-import { shoelaceCem } from "./__MOCKS__/shoelace-cem";
-import { guiCem } from "./__MOCKS__/gui-cem";
+import { shoelaceCem } from "./__MOCKS__/shoelace-cem" with { type: 'json' };
+import { guiCem } from "./__MOCKS__/gui-cem" with { type: 'json' };
 
 describe("getAlComponents", () => {
   test("should return one component from `guiCem`", () => {

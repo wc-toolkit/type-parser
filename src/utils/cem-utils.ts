@@ -1,5 +1,5 @@
 import type * as cem from "custom-elements-manifest";
-import { ComponentEvent, Method, Property } from "./types";
+import { Component, ComponentEvent, Method, Property } from "./types";
 
 export const JS_TYPES = new Set([
   "any",
@@ -43,21 +43,20 @@ export const DOM_EVENTS = new Set([
  * Gets a list of all components from a Custom Elements Manifest object
  * @param customElementsManifest
  * @param exclude an array of component names to exclude
- * @returns {Array<CustomElement>} an array of components
+ * @returns {Array<Component>} an array of components
  */
-export function getAllComponents(
+export function getAllComponents<T extends Component>(
   customElementsManifest: unknown,
   exclude: string[] = []
-) {
+): (Component | undefined)[] {
   return (
-    (customElementsManifest as cem.Package).modules
-      ?.map((mod) =>
-        mod.declarations
-          ?.filter((d) => (d as cem.CustomElement).customElement)
-          ?.flat()
+    ((customElementsManifest as cem.Package).modules
+      ?.map((mod) => mod.declarations
+        ?.filter((d) => (d as cem.CustomElement).customElement)
+        ?.flat()
       )
       ?.flat() || []
-  ).filter((x) => x && !exclude?.includes(x.name)) as cem.CustomElement[];
+    ).filter((x) => x && !exclude?.includes(x.name)) as unknown as T[]);
 }
 
 /**
@@ -66,12 +65,12 @@ export function getAllComponents(
  * @param exclude and array of component names to exclude
  * @returns {Component}
  */
-export function getComponentByClassName(
+export function getComponentByClassName<T extends Component>(
   customElementsManifest: unknown,
   className?: string
 ) {
-  return getAllComponents(customElementsManifest).find(
-    (c) => c.name === className
+  return getAllComponents<T>(customElementsManifest).find(
+    (c) => c?.name === className
   );
 }
 
@@ -81,12 +80,12 @@ export function getComponentByClassName(
  * @param exclude and array of component names to exclude
  * @returns {Component}
  */
-export function getComponentByTagName(
+export function getComponentByTagName<T extends Component>(
   customElementsManifest: unknown,
   tagName?: string
 ) {
-  return getAllComponents(customElementsManifest).find(
-    (c) => c.tagName === tagName
+  return getAllComponents<T>(customElementsManifest).find(
+    (c) => c?.tagName === tagName
   );
 }
 
@@ -95,7 +94,7 @@ export function getComponentByTagName(
  * @param component CEM component/declaration object
  * @returns {Array<Property>} an array of public properties for a given component
  */
-export function getComponentPublicProperties(component: cem.CustomElement) {
+export function getComponentPublicProperties<T extends Property>(component: cem.CustomElement) {
   return (component?.members?.filter(
     (member) =>
       member.kind === "field" &&
@@ -103,15 +102,15 @@ export function getComponentPublicProperties(component: cem.CustomElement) {
       member.privacy !== "protected" &&
       !member.static &&
       !member.name.startsWith("#")
-  ) || []) as Property[];
+  ) || []) as T[];
 }
 
 /**
  * Get all public methods for a component
  * @param component CEM component/declaration object
- * @returns {Array<ClassMethod>} an array of methods for a given component
+ * @returns {Array<Method>} an array of methods for a given component
  */
-export function getComponentPublicMethods(
+export function getComponentPublicMethods<T extends Method>(
   component: cem.CustomElement
 ): Method[] {
   const getParameter = (p: cem.Parameter) =>
@@ -139,7 +138,7 @@ export function getComponentPublicMethods(
 
       return m;
     })
-  );
+  ) as T[];
 }
 
 /** The type used to define the configuration options for the `getComponentEventsWithType` function */
@@ -156,10 +155,10 @@ export type EventOptions = {
  * @param {EventOptions} options options for custom event detail type and custom event type
  * @returns {Array<ComponentEvent>} an array of events for a given component
  */
-export function getComponentEventsWithType(
+export function getComponentEventsWithType<T extends ComponentEvent>(
   component: cem.CustomElement,
   options: EventOptions = {}
-): ComponentEvent[] {
+): T[] {
   const events = component?.events?.map((e) => {
     const type: string =
       (e as unknown as Record<string, cem.Type>)[
@@ -182,19 +181,19 @@ export function getComponentEventsWithType(
     };
   });
 
-  return (events || []) as ComponentEvent[];
+  return (events || []) as T[];
 }
 
 /**
  * Gets a list of event names for a given component.
  * This is used for generating a list of event names for an import in a type definition file.
  * If the event detail type is not a named type, custom type, or a generic, it will not be included in the list.
- * @param component The component you want to get the event types for
- * @param excludedTypes Any types you want to exclude from the list
- * @returns A string array of event types for a given component
+ * @param {Component} component The component you want to get the event types for
+ * @param {string[]} excludedTypes Any types you want to exclude from the list
+ * @returns {string[]} A string array of event types for a given component
  */
 export function getCustomEventDetailTypes(
-  component: cem.CustomElement,
+  component: Component,
   excludedTypes?: string[]
 ): string[] {
   const types =

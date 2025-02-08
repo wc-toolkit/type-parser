@@ -11,7 +11,7 @@ export const shoelaceCem = {
       declarations: [
         {
           kind: "class",
-          description: "",
+          description: "A description about what an alert is and how to use it",
           name: "SlAlert",
           cssParts: [
             {

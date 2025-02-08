@@ -31,7 +31,7 @@ export type Method<T = Record<string, unknown>> = cem.ClassMethod & {
 /** A generic extension of the CEM `Slot` type to allow for strongly typing your custom data */
 export type Slot<T = Record<string, unknown>> = cem.Slot & T;
 
-/** A combination of the Attribute and ClassField types fro the custom elements manifest */
+/** A combination of the Attribute and ClassField types from the custom elements manifest */
 export type AttributeAndProperty = {
   /** The name of the attribute */
   attrName?: string;

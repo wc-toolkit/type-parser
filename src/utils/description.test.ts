@@ -1,5 +1,26 @@
 import { describe, expect, test } from "vitest";
-import { getMemberDescription } from "./description";
+import { getComponentDetailsTemplate, getMemberDescription } from "./description";
+import { shoelaceCem } from "./__MOCKS__/shoelace-cem" with { type: 'json' };
+import { getComponentByClassName } from "./cem-utils";
+
+describe("getComponentDetailsTemplate", () => {
+  test("should return a string with component details", () => {
+    // Arrange
+    const alert = getComponentByClassName(shoelaceCem, "SlAlert");
+
+    // Act
+    const result = getComponentDetailsTemplate(alert);
+
+    console.log(result);
+    // Assert
+
+    expect(result.includes('### Attributes & Properties')).toBeTruthy();
+    expect(result.includes('- `sl-show`: Emitted when the alert opens.')).toBeTruthy();
+    expect(result.includes('- `show() => void`: Shows the alert.')).toBeTruthy();
+    expect(result.includes('- `(default)`: The alert\'s main content.')).toBeTruthy();
+    expect(result.includes('### CSS States')).toBeFalsy();
+  });
+});
 
 describe("getMemberDescription", () => {
   test("should return a string without `@deprecated` tag", () => {
@@ -29,7 +50,7 @@ describe("getMemberDescription", () => {
     const input = "Test description";
 
     // Act
-    const result = getMemberDescription(input, 'Deprecation message');
+    const result = getMemberDescription(input, "Deprecation message");
 
     // Assert
     expect(result).toBe("@deprecated Deprecation message - Test description");
