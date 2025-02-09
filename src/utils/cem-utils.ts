@@ -94,7 +94,7 @@ export function getComponentByTagName<T extends Component>(
  * @param component CEM component/declaration object
  * @returns {Array<Property>} an array of public properties for a given component
  */
-export function getComponentPublicProperties<T extends Property>(component: cem.CustomElement) {
+export function getComponentPublicProperties<T extends Property>(component: Component) {
   return (component?.members?.filter(
     (member) =>
       member.kind === "field" &&
@@ -111,7 +111,7 @@ export function getComponentPublicProperties<T extends Property>(component: cem.
  * @returns {Array<Method>} an array of methods for a given component
  */
 export function getComponentPublicMethods<T extends Method>(
-  component: cem.CustomElement
+  component: Component
 ): Method[] {
   const getParameter = (p: cem.Parameter) =>
     p.name + getParamType(p) + getParamDefaultValue(p);
