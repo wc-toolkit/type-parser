@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-utilities",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "A set of tools for retrieving and transforming data from the Custom Elements Manifest",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -19,6 +19,7 @@
     "/dist"
   ],
   "scripts": {
+    "changeset": "changeset add",
     "build": "tsup src/index.ts --dts --format cjs,esm",
     "clean": "git clean -fdX",
     "deploy": "npm run build && npm publish",
