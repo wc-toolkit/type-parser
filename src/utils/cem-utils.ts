@@ -48,7 +48,7 @@ export const DOM_EVENTS = new Set([
 export function getAllComponents<T extends Component>(
   customElementsManifest: unknown,
   exclude: string[] = []
-): (Component | undefined)[] {
+): T[] {
   return (
     ((customElementsManifest as cem.Package).modules
       ?.map((mod) => mod.declarations
@@ -68,7 +68,7 @@ export function getAllComponents<T extends Component>(
 export function getComponentByClassName<T extends Component>(
   customElementsManifest: unknown,
   className?: string
-) {
+): T | undefined {
   return getAllComponents<T>(customElementsManifest).find(
     (c) => c?.name === className
   );
@@ -83,7 +83,7 @@ export function getComponentByClassName<T extends Component>(
 export function getComponentByTagName<T extends Component>(
   customElementsManifest: unknown,
   tagName?: string
-) {
+): T | undefined {
   return getAllComponents<T>(customElementsManifest).find(
     (c) => c?.tagName === tagName
   );
