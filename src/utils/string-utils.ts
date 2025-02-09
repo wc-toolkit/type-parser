@@ -1,4 +1,14 @@
 /**
+ * Removes quote wrappers from a string (single or double quotes) 
+ * (ex: "my-component" from "'my-component'")
+ * @param value
+ * @returns {string}
+ */
+export function removeQuotes(value: string) {
+  return value.trim().replace(/^["'](.+(?=["']$))["']$/, "$1");
+}
+
+/**
  * Convert a string to kebab-case 
  * (ex: "my-component" from "MyComponent")
  * @param value 
@@ -59,14 +69,4 @@ export function toCamelCase(value: string = "") {
       : item.toLowerCase(),
   );
   return capital.join("");
-}
-
-/**
- * Removes quote wrappers from a string (single or double quotes) 
- * (ex: "my-component" from "'my-component'")
- * @param value
- * @returns {string}
- */
-export function removeQuotes(value: string) {
-  return value.trim().replace(/^["'](.+(?=["']$))["']$/, "$1");
 }
