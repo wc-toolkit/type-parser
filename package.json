@@ -28,7 +28,7 @@
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "test": "vitest --run",
     "prepare": "husky",
-    "release": "pnpm run build && changeset publish && npm publish"
+    "release": "pnpm run build && changeset publish && npm publish --access=public"
   },
   "author": "",
   "license": "MIT",
