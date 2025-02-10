@@ -185,7 +185,7 @@ export function getComponentEventsWithType<T extends ComponentEvent>(
 }
 
 /**
- * Gets a list of event names for a given component.
+ * Gets a list of event detail types for a given component.
  * This is used for generating a list of event names for an import in a type definition file.
  * If the event detail type is not a named type, custom type, or a generic, it will not be included in the list.
  * @param {Component} component The component you want to get the event types for
