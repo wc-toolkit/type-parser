@@ -1,5 +1,5 @@
 import type * as cem from "custom-elements-manifest";
-import { Component, ComponentEvent, Method, Property } from "./types";
+import type { Component, ComponentEvent, Method, Property } from "./types";
 
 export const JS_TYPES = new Set([
   "any",
@@ -48,7 +48,7 @@ export const DOM_EVENTS = new Set([
 export function getAllComponents<T extends Component>(
   customElementsManifest: unknown,
   exclude: string[] = []
-): (Component | undefined)[] {
+): T[] {
   return (
     ((customElementsManifest as cem.Package).modules
       ?.map((mod) => mod.declarations
@@ -68,7 +68,7 @@ export function getAllComponents<T extends Component>(
 export function getComponentByClassName<T extends Component>(
   customElementsManifest: unknown,
   className?: string
-) {
+): T | undefined {
   return getAllComponents<T>(customElementsManifest).find(
     (c) => c?.name === className
   );
@@ -83,7 +83,7 @@ export function getComponentByClassName<T extends Component>(
 export function getComponentByTagName<T extends Component>(
   customElementsManifest: unknown,
   tagName?: string
-) {
+): T | undefined {
   return getAllComponents<T>(customElementsManifest).find(
     (c) => c?.tagName === tagName
   );
@@ -94,7 +94,7 @@ export function getComponentByTagName<T extends Component>(
  * @param component CEM component/declaration object
  * @returns {Array<Property>} an array of public properties for a given component
  */
-export function getComponentPublicProperties<T extends Property>(component: cem.CustomElement) {
+export function getComponentPublicProperties<T extends Property>(component: Component) {
   return (component?.members?.filter(
     (member) =>
       member.kind === "field" &&
@@ -111,8 +111,8 @@ export function getComponentPublicProperties<T extends Property>(component: cem.
  * @returns {Array<Method>} an array of methods for a given component
  */
 export function getComponentPublicMethods<T extends Method>(
-  component: cem.CustomElement
-): Method[] {
+  component: Component
+): T[] {
   const getParameter = (p: cem.Parameter) =>
     p.name + getParamType(p) + getParamDefaultValue(p);
   const getParamType = (p: cem.Parameter) =>
@@ -185,7 +185,7 @@ export function getComponentEventsWithType<T extends ComponentEvent>(
 }
 
 /**
- * Gets a list of event names for a given component.
+ * Gets a list of event detail types for a given component.
  * This is used for generating a list of event names for an import in a type definition file.
  * If the event detail type is not a named type, custom type, or a generic, it will not be included in the list.
  * @param {Component} component The component you want to get the event types for

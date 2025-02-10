@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
-  removeQuoteWrappers,
+  removeQuotes,
   toKebabCase,
   toPascalCase,
 } from "./string-utils.js";
@@ -35,7 +35,7 @@ describe("removeQuoteWrappers", () => {
     const input = `'Test'`;
 
     // Act
-    const result = removeQuoteWrappers(input);
+    const result = removeQuotes(input);
 
     // Assert
     expect(result).toBe("Test");
@@ -46,7 +46,7 @@ describe("removeQuoteWrappers", () => {
     const input = `"Test"`;
 
     // Act
-    const result = removeQuoteWrappers(input);
+    const result = removeQuotes(input);
 
     // Assert
     expect(result).toBe("Test");
@@ -57,7 +57,7 @@ describe("removeQuoteWrappers", () => {
     const input = `"Can't"`;
 
     // Act
-    const result = removeQuoteWrappers(input);
+    const result = removeQuotes(input);
 
     // Assert
     expect(result).toBe("Can't");
