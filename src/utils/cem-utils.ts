@@ -112,7 +112,7 @@ export function getComponentPublicProperties<T extends Property>(component: Comp
  */
 export function getComponentPublicMethods<T extends Method>(
   component: Component
-): Method[] {
+): T[] {
   const getParameter = (p: cem.Parameter) =>
     p.name + getParamType(p) + getParamDefaultValue(p);
   const getParamType = (p: cem.Parameter) =>
