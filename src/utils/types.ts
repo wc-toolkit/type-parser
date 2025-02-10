@@ -1,4 +1,4 @@
-import * as cem from "custom-elements-manifest";
+import type * as cem from "custom-elements-manifest";
 
 /** A generic extension of the CEM `CustomElement` type to allow for strongly typing your custom data */
 export type Component<T = Record<string, unknown>> = cem.CustomElement & T;

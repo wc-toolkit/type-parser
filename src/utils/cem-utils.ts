@@ -1,5 +1,5 @@
 import type * as cem from "custom-elements-manifest";
-import { Component, ComponentEvent, Method, Property } from "./types";
+import type { Component, ComponentEvent, Method, Property } from "./types";
 
 export const JS_TYPES = new Set([
   "any",
