@@ -1,49 +1,114 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and object logos](https://raw.githubusercontent.com/wc-toolkit/cem-utilities/refs/heads/main/assets/wc-toolkit_json.svg)
+![workbench with tools, html, css, javascript, and jsdoc logos](https://raw.githubusercontent.com/wc-toolkit/cem-utilities/refs/heads/main/assets/wc-toolkit_jsdoc.svg)
 
 </div>
 
-# CEM Utilities
+# WC Toolkit Custom JSDoc Tags Plugin
 
-These are a set of tools of retrieving and transforming data from the [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest).
+This is a plugin maps custom JSDoc tags on your component classes to properties in Custom Elements Manifest using the [Custom Element Manifest Analyzer](https://custom-elements-manifest.open-wc.org/).
 
-The following docs serve as a quick reference guide to the features of the library. To find out more about these tools, be sure to check out the [official docs](https://wc-toolkit.com/cem-utilities/overview/).
+## Installation 
 
-## CEM Utility Functions
+```bash
+npm i -D @wc-toolkit/jsdoc-tags
+```
 
-You can find more details on these functions [here](https://wc-toolkit.com/cem-utilities/cem-utils/).
+## Usage
 
-- `getAllComponents` - Gets a list of all components from a Custom Elements Manifest object
-- `getComponentByClassName` - Gets a component from a CEM object based on the class name
-- `getComponentByTagName` - Gets a component from a CEM object based on the tag name
-- `getComponentPublicProperties` - Gets a list of public properties from a CEM component
-- `getComponentPublicMethods` - Get all public methods for a component
-- `getComponentEventsWithType` - Get all events for a component with the complete event type
-- `getCustomEventDetailTypes` - Gets a list of event detail types for a given component.
+Add the information you would like to include with you component in the class's JSDoc comment using custom tags. In this example, the `@dependency`, `@since`, `@status`, and `@spec` tags are all custom.
 
-## Deep Merge
+```js
+// my-component.js
 
-You can find more details on these functions [here](https://wc-toolkit.com/cem-utilities/deep-merge/).
+/**
+ *
+ * My custom element does some amazing things
+ *
+ * @tag my-element
+ *
+ * @dependency icon
+ * @dependency button
+ *
+ * @since 1.2.5
+ * 
+ * @status beta - not ready for production
+ * 
+ * @spec https://www.figma.com/...
+ *
+ */
+export class MyElement extends HTMLElement {
+  ...
+}
+```
 
-- `deepMerge` - a simple utility for merging two objects together.
+In the [CEM analyzer config](https://custom-elements-manifest.open-wc.org/analyzer/config/), import the plugin and add the mappings for the new tags.
 
-## Component Descriptions
+```js
+// custom-elements-manifest.config.mjs
 
-You can find more details on these functions [here](https://wc-toolkit.com/cem-utilities/descriptions/).
+import { jsDocTagsPlugin } from "@wc-toolkit/jsdoc-tags";
 
-- `getComponentDetailsTemplate` - returns a formatted string with the details of the various APIs of a custom element.
-- `getMainComponentDescription` - returns the component's primary description
-- `getAttrsAndProps` - returns an array of `AttributeAndProperty` objects that contain the attributes and public properties (including those not associated with an attribute) for a component.
-- `getPropertyOnlyFields` - returns a list of properties that do not have a corresponding attribute.
-- `getMemberDescription` - returns a description for a member of a component with any relevant deprecation information.
+export default {
+  ...
+  /** Provide custom plugins */
+  plugins: [
+    jsDocTagsPlugin({
+      tags: {
+        // finds the values for the `@since` tag
+        since: {},
+        // finds the values for the `@status` tag
+        status: {},
+        // finds the values for the `@spec` tag
+        spec: {},
+        // finds the values for the `@dependency` tag
+        dependency: {
+          // maps the values to the `dependencies` property in the CEM
+          mappedName: 'dependencies',
+          // ensures the values are always in an array (even if there is only 1)
+          isArray: true,
+        },
+      }
+    }),
+  ],
+};
+```
 
-## String Utilities
+## Result
 
-You can find more details on these functions [here](https://wc-toolkit.com/cem-utilities/string-utils/).
+The data should now be included in the Custom Elements Manifest.
 
-- `removeQuotes` - removes single or double quotes that wrap a string
-- `toKebabCase` - converts a string to kebab-case.
-- `toSentenceCase` - converts a string to sentence-case.
-- `toPascalCase` - converts a string to pascal-case.
-- `toCamelCase` - converts a string to camel-case.
+```json
+// custom-elements.json
+
+{
+  "kind": "class",
+  "description": "My custom element does some amazing things",
+  "name": "MyElement",
+  "tagName": "my-element",
+  "since": {
+    "name": "1.2.5",
+    "description": ""
+  },
+  "status": {
+    "name": "beta",
+    "description": "not ready for production"
+  },
+  "spec": {
+    "name": "https://www.figma.com/...",
+    "description": ""
+  },
+  "dependencies": [
+    {
+      "name": "icon",
+      "description": ""
+    },
+    {
+      "name": "button",
+      "description": ""
+    }
+  ]
+}
+```
+
+Be sure to check out the [official docs](https://wc-toolkit.com/documentation/jsdoc-tags) for more information on how to use this.

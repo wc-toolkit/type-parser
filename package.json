@@ -1,6 +1,6 @@
 {
-  "name": "@wc-toolkit/cem-utilities",
-  "version": "1.0.0",
+  "name": "@wc-toolkit/jsdoc-tags",
+  "version": "0.0.0",
   "description": "A set of tools for retrieving and transforming data from the Custom Elements Manifest",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -19,6 +19,7 @@
     "/dist"
   ],
   "scripts": {
+    "analyze": "npm run build && cem analyze --globs demo/src/**/*.js --outdir demo",
     "changeset": "changeset add",
     "build": "tsup src/index.ts --dts --format cjs,esm",
     "clean": "git clean -fdX",
@@ -28,21 +29,24 @@
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "test": "vitest --run",
     "prepare": "husky",
-    "release": "pnpm run build && changeset publish && npm publish --access=public"
+    "release": "pnpm run build && changeset publish --access public"
   },
   "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wc-toolkit/cem-utilities.git"
+    "url": "git+https://github.com/wc-toolkit/jsdoc-tags.git"
   },
   "bugs": {
-    "url": "https://github.com/wc-toolkit/cem-utilities/issues"
+    "url": "https://github.com/wc-toolkit/jsdoc-tags/issues"
   },
-  "homepage": "https://wc-toolkit.com/cem-utilities/overview",
+  "homepage": "https://wc-toolkit.com/documentation/jsdoc-tags",
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
+    "@custom-elements-manifest/analyzer": "^0.10.4",
     "@eslint/js": "^9.19.0",
+    "@wc-toolkit/cem-utilities": "^1.0.0",
+    "comment-parser": "^1.4.1",
     "custom-elements-manifest": "2.1.0",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
