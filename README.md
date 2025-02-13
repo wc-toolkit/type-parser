@@ -4,7 +4,7 @@
 
 </div>
 
-# WC Toolkit Custom JSDoc Tags Plugin
+# WC Toolkit Type Parser
 
 This is a plugin maps custom JSDoc tags on your component classes to properties in Custom Elements Manifest using the [Custom Element Manifest Analyzer](https://custom-elements-manifest.open-wc.org/).
 
