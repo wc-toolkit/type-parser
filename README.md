@@ -111,4 +111,13 @@ The data should now be included in the Custom Elements Manifest.
 }
 ```
 
+<div style="text-align: center; margin-top: 32px;">
+  <a href="https://stackblitz.com/edit/stackblitz-starters-endx3har?file=README.md">
+    <img
+      alt="Open in StackBlitz"
+      src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
+    />
+  </a>
+</div>
+
 Be sure to check out the [official docs](https://wc-toolkit.com/documentation/jsdoc-tags) for more information on how to use this.
