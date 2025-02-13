@@ -1,5 +1,11 @@
 # @wc-toolkit/jsdoc-tags
 
+## 1.0.2
+
+### Patch Changes
+
+- f3f2c56: Updated publish pipeline
+
 ## 1.0.1
 
 ### Patch Changes
