@@ -1,6 +1,6 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and jsdoc logos](https://raw.githubusercontent.com/wc-toolkit/cem-utilities/refs/heads/main/assets/wc-toolkit_jsdoc.svg)
+![workbench with tools, html, css, javascript, and jsdoc logos](https://raw.githubusercontent.com/wc-toolkit/jsdoc-tags/refs/heads/main/assets/wc-toolkit_jsdoc.png)
 
 </div>
 

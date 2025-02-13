@@ -62,7 +62,9 @@
     "custom-elements-manifest",
     "web-components",
     "components",
-    "cem"
+    "cem",
+    "jsdoc",
+    "@wc-toolkit/jsdoc-tags"
   ],
   "lint-staged": {
     "*.ts": "eslint --cache --fix",
