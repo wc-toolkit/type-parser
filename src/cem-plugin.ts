@@ -5,8 +5,9 @@ import { deepMerge, type Component } from "@wc-toolkit/cem-utilities";
 import { Logger } from "./logger.js";
 import type ts from "typescript";
 
+/** Options for configuring the CEM Type Parser plugin */
 export interface Options {
-  /** Determines the name of the property used in the manifest to store the expanded type */
+  /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
   /** Shows output logs used for debugging */
   debug?: boolean;
@@ -43,21 +44,20 @@ let typeChecker: any;
 let options: Options;
 let typeScript: typeof import("typescript");
 let tsConfigFile: any;
+let log: Logger;
 const defaultOptions: Options = {
   propertyName: "parsedType",
 };
 
 /**
- * CEM Analyzer plugin to expand types in component metadata
+ * CEM Analyzer plugin to parse types in component metadata
  * @param tc TypeScript type checker
  * @param op Configuration options
  * @returns
  */
-export function expandTypesPlugin(
-  op: Options
-) {
+export function typeParserPlugin(op: Options) {
   options = deepMerge(defaultOptions, op);
-  const log = new Logger(op.debug);
+  log = new Logger(options.debug);
 
   if (options.skip) {
     log.yellow("[type-parser] - Skipped");
@@ -66,7 +66,7 @@ export function expandTypesPlugin(
   log.log("[type-parser] - Updating Custom Elements Manifest...");
 
   return {
-    name: "expand-types-plugin",
+    name: "type-parser-plugin",
     analyzePhase,
     packageLinkPhase: () => {
       log.green("[type-parser] - Custom Elements Manifest updated.");
@@ -100,17 +100,18 @@ export function getTsProgram(
   typeScript = ts;
   typeChecker = program.getTypeChecker();
   for (const sourceFile of program.getSourceFiles()) {
-    currentFilename = path.resolve((sourceFile).fileName);
-    if (!currentFilename.includes("node_modules")) {
+    currentFilename = path.resolve(sourceFile.fileName);
+    // exclude files and directories specified in the tsconfig.json
+    if (!config.exclude.some((x: string) => currentFilename.includes(x))) {
       aliasTypes[currentFilename] = {};
-      visit(sourceFile);
+      visitNode(sourceFile);
     }
   }
   groupTypesByName();
   return program;
 }
 
-function getExpandedType(fileName: string, typeName: string): string {
+function getParsedType(fileName: string, typeName: string): string {
   if (typeName?.includes("|")) {
     return getUnionTypes(fileName, typeName);
   }
@@ -143,7 +144,7 @@ function getUnionTypes(fileName: string, typeName: string): string {
       ?.split("|")
       .map((part) => part.trim())
       .filter((part) => part.length > 0)
-      ?.map((part) => getExpandedType(fileName, part))
+      ?.map((part) => getParsedType(fileName, part))
       .join(" | ") || ""
   );
 }
@@ -160,10 +161,7 @@ function getObjectTypes(fileName: string, typeName: string): string {
   parts.forEach((part) => {
     // remove comments from object
     const cleanPart = part.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-    typeName = typeName.replace(
-      cleanPart,
-      getExpandedType(fileName, cleanPart)
-    );
+    typeName = typeName.replace(cleanPart, getParsedType(fileName, cleanPart));
   });
   return typeName;
 }
@@ -251,13 +249,13 @@ function getFinalType(type: any): string {
 }
 
 // Visit each node in the source file
-function visit(node: any) {
+function visitNode(node: any) {
   if (typeScript.isTypeAliasDeclaration(node)) {
     const symbol = typeChecker.getSymbolAtLocation(node.name);
     if (symbol) {
       const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
       const finalType = getFinalType(type);
-      console.log(
+      log.log(
         `Type alias '${node.name.text}' has final computed type: ${finalType} ${currentFilename}`
       );
       aliasTypes[currentFilename][node.name.text] = finalType;
@@ -269,12 +267,11 @@ function visit(node: any) {
     if (symbol) {
       const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
       const finalType = getFinalType(type);
-      // console.log(`Enum '${node.name.text}' has members: ${finalType}`);
       aliasTypes[currentFilename][node.name.text] = finalType;
     }
   }
 
-  typeScript.forEachChild(node, visit);
+  typeScript.forEachChild(node, visitNode);
 }
 
 function groupTypesByName() {
@@ -287,7 +284,6 @@ function groupTypesByName() {
     }
   }
 }
-
 
 function analyzePhase({ ts, node, moduleDoc, context }: any) {
   moduleDoc.path = moduleDoc.path.replace(`${process.cwd()}/`, "");
@@ -330,12 +326,12 @@ function getTypeValue(item: any, context: any) {
   );
 
   if (!importedType) {
-    return getExpandedType(currentFilename, item.type.text);
+    return getParsedType(currentFilename, item.type.text);
   }
 
   const resolvedPath = getResolvedImportPath(currentFilename, importedType);
 
-  return getExpandedType(resolvedPath, importedType.name);
+  return getParsedType(resolvedPath, importedType.name);
 }
 
 function getResolvedImportPath(importPath: string, importedType: any) {
@@ -369,7 +365,7 @@ function updateParsedTypes(component: Component, context: any) {
     const typeValue = getTypeValue(member, context);
     if (typeValue !== member.type.text) {
       member[propName] = {
-        text: typeValue,
+        text: typeValue.replace(/"/g, "'"),
       };
     }
   });
