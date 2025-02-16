@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import path from "path";
 import fs from "fs";
-import { Logger } from "./logger.js"; // Replace "some-module" with the actual module where Logger is defined
-import type * as ts from "typescript";
-import type { Component } from "@wc-toolkit/cem-utilities"; // Replace "some-module" with the actual module where Component is defined
+import { deepMerge, type Component } from "@wc-toolkit/cem-utilities";
+import { Logger } from "./logger.js";
+import type ts from "typescript";
 
 export interface Options {
   /** Determines the name of the property used in the manifest to store the expanded type */
   propertyName?: string;
-  /** Hides logs produced by the plugin */
-  hideLogs?: boolean;
+  /** Shows output logs used for debugging */
+  debug?: boolean;
   /** Prevents plugin from executing */
   skip?: boolean;
 }
@@ -38,10 +39,13 @@ const primitives = [
   "false",
 ];
 let currentFilename = "";
-let typeChecker: ts.TypeChecker;
+let typeChecker: any;
 let options: Options;
 let typeScript: typeof import("typescript");
-let tsConfigFile: string;
+let tsConfigFile: any;
+const defaultOptions: Options = {
+  propertyName: "parsedType",
+};
 
 /**
  * CEM Analyzer plugin to expand types in component metadata
@@ -50,26 +54,22 @@ let tsConfigFile: string;
  * @returns
  */
 export function expandTypesPlugin(
-  op: Options = {
-    propertyName: "expandedType",
-  }
+  op: Options
 ) {
-  options = op;
-  const log = new Logger(!op.hideLogs);
+  options = deepMerge(defaultOptions, op);
+  const log = new Logger(op.debug);
+
   if (options.skip) {
-    log.yellow("[cem-expanded-types] - Skipped");
+    log.yellow("[type-parser] - Skipped");
     return;
   }
-  log.log(
-    "[cem-expanded-types] - Updating Custom Elements Manifest...");
+  log.log("[type-parser] - Updating Custom Elements Manifest...");
 
   return {
     name: "expand-types-plugin",
-    collectPhase,
     analyzePhase,
     packageLinkPhase: () => {
-      log.green(
-        "[cem-expanded-types] - Custom Elements Manifest updated.");
+      log.green("[type-parser] - Custom Elements Manifest updated.");
     },
   };
 }
@@ -90,14 +90,23 @@ export function getTsProgram(
     process.cwd(),
     ts.sys.fileExists,
     configName
-  )!;
+  );
   const { config } = ts.readConfigFile(tsConfigFile, ts.sys.readFile);
   const compilerOptions = ts.convertCompilerOptionsFromJson(
     config.compilerOptions ?? {},
     "."
   );
   const program = ts.createProgram(globs, compilerOptions.options);
+  typeScript = ts;
   typeChecker = program.getTypeChecker();
+  for (const sourceFile of program.getSourceFiles()) {
+    currentFilename = path.resolve((sourceFile).fileName);
+    if (!currentFilename.includes("node_modules")) {
+      aliasTypes[currentFilename] = {};
+      visit(sourceFile);
+    }
+  }
+  groupTypesByName();
   return program;
 }
 
@@ -159,44 +168,113 @@ function getObjectTypes(fileName: string, typeName: string): string {
   return typeName;
 }
 
-function collectPhase({
-  ts,
-  node,
-}: {
-  ts: typeof import("typescript");
-  node: ts.Node;
-}) {
-  typeScript = ts;
-  parseFileTypes(node);
-}
-
-function parseFileTypes(node: ts.Node) {
-  if ((node as ts.SourceFile)?.fileName?.includes("node_modules")) {
-    return;
+function getFinalType(type: any): string {
+  if (type.isUnion()) {
+    return type.types.map(getFinalType).join(" | ");
+  }
+  if (type.isIntersection()) {
+    return type.types.map(getFinalType).join(" & ");
+  }
+  if (type.flags & typeScript.TypeFlags.String) {
+    return "string";
+  }
+  if (type.flags & typeScript.TypeFlags.Number) {
+    return "number";
+  }
+  if (type.flags & typeScript.TypeFlags.Boolean) {
+    return "boolean";
+  }
+  if (type.flags & typeScript.TypeFlags.Unknown) {
+    return "unknown";
+  }
+  if (type.flags & typeScript.TypeFlags.Any) {
+    return "any";
+  }
+  if (type.flags & typeScript.TypeFlags.Void) {
+    return "void";
+  }
+  if (type.flags & typeScript.TypeFlags.Null) {
+    return "null";
+  }
+  if (type.flags & typeScript.TypeFlags.Undefined) {
+    return "undefined";
+  }
+  if (type.flags & typeScript.TypeFlags.Never) {
+    return "never";
+  }
+  if (type.flags & typeScript.TypeFlags.BigInt) {
+    return "bigint";
+  }
+  if (type.flags & typeScript.TypeFlags.ESSymbol) {
+    return "symbol";
   }
 
-  if (node.kind === typeScript.SyntaxKind.SourceFile) {
-    currentFilename = path.resolve((node as ts.SourceFile).fileName);
-    aliasTypes[currentFilename] = {};
-  } else if (node.kind === typeScript.SyntaxKind.EnumDeclaration) {
-    setEnumTypes(node as ts.EnumDeclaration);
-  } else if (node.kind === typeScript.SyntaxKind.TypeAliasDeclaration) {
-    if (
-      (node as ts.TypeAliasDeclaration).type.kind ===
-      typeScript.SyntaxKind.UnionType
-    ) {
-      setBasicUnionTypes(node as ts.TypeAliasDeclaration);
-    } else if (
-      (node as ts.TypeAliasDeclaration).type.kind ===
-        typeScript.SyntaxKind.TypeOperator ||
-      (node as ts.TypeAliasDeclaration).type.kind ===
-        typeScript.SyntaxKind.IndexedAccessType
-    ) {
-      setComplexUnionTypes(node as ts.TypeAliasDeclaration);
+  if (type.flags & typeScript.TypeFlags.StringLiteral) {
+    const value = (type as ts.LiteralType).value as string;
+    return `"${value}"`;
+  }
+
+  if (
+    type.flags & typeScript.TypeFlags.NumberLiteral ||
+    type.flags & typeScript.TypeFlags.BigIntLiteral
+  ) {
+    const value = (type as ts.LiteralType).value as number;
+    return `${value}`;
+  }
+
+  if (type.flags & typeScript.TypeFlags.Enum) {
+    const enumType = type as ts.EnumType;
+    const enumMembers = typeChecker.getPropertiesOfType(enumType);
+    const enumValues = enumMembers.map((member: { name: any }) => member.name);
+    return enumValues.join(" | ");
+  }
+
+  // Add more type checks as needed
+
+  // Get properties if the type is an object
+  if (type.isClassOrInterface() || type.flags & typeScript.TypeFlags.Object) {
+    const properties = typeChecker.getPropertiesOfType(type);
+    const props = properties.map(
+      (prop: { valueDeclaration: any; name: any }) => {
+        const propType = typeChecker.getTypeOfSymbolAtLocation(
+          prop,
+          prop.valueDeclaration!
+        );
+        const propTypeString = getFinalType(propType);
+        return `${prop.name}: ${propTypeString}`;
+      }
+    );
+    return `{ ${props.join(", ")} }`;
+  }
+
+  return typeChecker.typeToString(type);
+}
+
+// Visit each node in the source file
+function visit(node: any) {
+  if (typeScript.isTypeAliasDeclaration(node)) {
+    const symbol = typeChecker.getSymbolAtLocation(node.name);
+    if (symbol) {
+      const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
+      const finalType = getFinalType(type);
+      console.log(
+        `Type alias '${node.name.text}' has final computed type: ${finalType} ${currentFilename}`
+      );
+      aliasTypes[currentFilename][node.name.text] = finalType;
     }
   }
 
-  groupTypesByName();
+  if (typeScript.isEnumDeclaration(node)) {
+    const symbol = typeChecker.getSymbolAtLocation(node.name);
+    if (symbol) {
+      const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
+      const finalType = getFinalType(type);
+      // console.log(`Enum '${node.name.text}' has members: ${finalType}`);
+      aliasTypes[currentFilename][node.name.text] = finalType;
+    }
+  }
+
+  typeScript.forEachChild(node, visit);
 }
 
 function groupTypesByName() {
@@ -210,94 +288,27 @@ function groupTypesByName() {
   }
 }
 
-function setEnumTypes(node: ts.EnumDeclaration) {
-  const name = node.name?.escapedText as string;
-  const shortText =
-    node.members
-      ?.map((mem: ts.EnumMember) => `'${mem.initializer?.getText()}'`)
-      .join(" | ") || "";
 
-  aliasTypes[currentFilename][name] = shortText;
-}
-
-function setBasicUnionTypes(node: ts.TypeAliasDeclaration) {
-  const name = node.name?.escapedText as string;
-  const unionTypes =
-    (node.type as ts.UnionTypeNode).types
-      ?.map((type: ts.TypeNode) => {
-        let value = (type as ts.LiteralTypeNode).literal?.getText();
-        if (!value && (type as ts.TypeReferenceNode).typeName?.getText()) {
-          value = getExpandedType(
-            currentFilename,
-            (type as ts.TypeReferenceNode).typeName?.getText()
-          );
-          return value;
-        }
-        return typeof value === "string" ? `'${value}'` : value;
-      })
-      .join(" | ") || "";
-  aliasTypes[currentFilename][name] = unionTypes;
-}
-
-function setComplexUnionTypes(node: ts.TypeAliasDeclaration) {
-  const name = node?.name?.escapedText as string;
-  const resolvedTypes = typeChecker.getDeclaredTypeOfSymbol(
-    typeChecker.getSymbolAtLocation(node.name)!
-  );
-  const unionTypes =
-    (resolvedTypes as ts.UnionType).types
-      ?.map((type: ts.Type) =>
-        typeof typeChecker.typeToString(type) === "string"
-          ? `'${typeChecker.typeToString(type)}'`
-          : typeChecker.typeToString(type)
-      )
-      .join(" | ") || "";
-
-  aliasTypes[currentFilename][name] = unionTypes;
-}
-
-interface Context {
-  imports: { name: string; importPath: string }[];
-}
-
-function analyzePhase({
-  ts,
-  node,
-  moduleDoc,
-  context,
-}: {
-  ts: typeof import("typescript");
-  node: ts.Node;
-  moduleDoc: { declarations: Component[] };
-  context: Context;
-}) {
-  (moduleDoc as unknown as { path: string }).path = (
-    moduleDoc as unknown as { path: string }
-  ).path.replace(`${process.cwd()}/`, "");
+function analyzePhase({ ts, node, moduleDoc, context }: any) {
+  moduleDoc.path = moduleDoc.path.replace(`${process.cwd()}/`, "");
   if (node.kind === ts.SyntaxKind.SourceFile) {
-    currentFilename = path.resolve((node as ts.SourceFile).fileName);
+    currentFilename = path.resolve(node.fileName);
   }
 
   if (node.kind !== ts.SyntaxKind.ClassDeclaration) {
     return;
   }
 
-  const component = getComponent(
-    node as ts.ClassDeclaration,
-    moduleDoc as { declarations: Component[] }
-  );
+  const component = getComponent(node, moduleDoc);
   if (!component) {
     return;
   }
 
-  updateExpandedTypes(component, context);
+  updateParsedTypes(component, context);
 }
 
-function getComponent(
-  node: ts.ClassDeclaration,
-  moduleDoc: { declarations: Component[] }
-): Component | undefined {
-  const className = node.name?.getText();
+function getComponent(node: any, moduleDoc: any) {
+  const className = node.name.getText();
   return moduleDoc.declarations.find(
     (dec: Component) => dec.name === className
   ) as Component | undefined;
@@ -309,17 +320,17 @@ function getTypedMembers(component: Component) {
       ...(component.attributes || []),
       ...(component.members || []),
       ...(component.events || []),
-    ] as unknown[]
-  ).filter((item) => (item as { type?: unknown })?.type);
+    ] as any[]
+  ).filter((item) => item?.type);
 }
 
-function getTypeValue(item: unknown, context: Context) {
+function getTypeValue(item: any, context: any) {
   const importedType = context?.imports?.find(
-    (i: { name: string }) => i.name === (item as { type: { text: string } }).type?.text
+    (i: any) => i.name === item.type?.text
   );
 
   if (!importedType) {
-    return getExpandedType(currentFilename, (item as { type: { text: string } }).type.text);
+    return getExpandedType(currentFilename, item.type.text);
   }
 
   const resolvedPath = getResolvedImportPath(currentFilename, importedType);
@@ -327,7 +338,7 @@ function getTypeValue(item: unknown, context: Context) {
   return getExpandedType(resolvedPath, importedType.name);
 }
 
-function getResolvedImportPath(importPath: string, importedType: { name: string; importPath: string }): string {
+function getResolvedImportPath(importPath: string, importedType: any) {
   let resolvedPath = path.resolve(
     path.dirname(currentFilename),
     importedType.importPath
@@ -342,37 +353,22 @@ function getResolvedImportPath(importPath: string, importedType: { name: string;
   } else if (resolvedPath.endsWith(".js")) {
     resolvedPath = `${resolvedPath}`.replace(".js", ".ts");
   } else if (resolvedPath.endsWith(".d.ts")) {
-    parseTypeDefinitionTypes(resolvedPath);
     resolvedPath = currentFilename;
   } else if (fs.existsSync(resolvedPath + ".d.ts")) {
-    parseTypeDefinitionTypes(resolvedPath + ".d.ts");
     resolvedPath = currentFilename;
   }
 
   return resolvedPath;
 }
 
-function parseTypeDefinitionTypes(source: string) {
-  if (!source) {
-    return;
-  }
-
-  const { config } = typeScript.readConfigFile(tsConfigFile, typeScript.sys.readFile);
-  const compilerOptions = typeScript.convertCompilerOptionsFromJson(config.compilerOptions ?? {}, ".");
-  const program = typeScript.createProgram([source], compilerOptions.options);
-  const sourceFile = program.getSourceFile(source);
-
-  typeScript.forEachChild(sourceFile!, parseFileTypes);
-}
-
-function updateExpandedTypes(component: Component, context: Context) {
+function updateParsedTypes(component: Component, context: any) {
   const typedMembers = getTypedMembers(component);
-  const propName = options.propertyName || "expandedType";
+  const propName = options.propertyName || "parsedType";
 
   typedMembers.forEach((member) => {
     const typeValue = getTypeValue(member, context);
-    if (typeValue !== (member as { type: { text: string } }).type.text) {
-      (member as { [key: string]: unknown })[propName] = {
+    if (typeValue !== member.type.text) {
+      member[propName] = {
         text: typeValue,
       };
     }

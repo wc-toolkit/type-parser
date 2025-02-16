@@ -1,10 +1,30 @@
-import { Test2 } from "./alt-types";
-import { Test } from "./types";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import type { Test2 } from "./alt-types";
+import type { Test } from "./types";
 
 type Hobby = "sports" | "music" | "art";
+type MyPartialType = Partial<{ prop1: string; prop2: number }>;
+type MyReadonlyType = Readonly<{ prop1: string; prop2: number }>;
+type MyRecordType = Record<string, number>;
+type MyPickType = Pick<{ prop1: string; prop2: number }, "prop1">;
+type MyOmitType = Omit<{ prop1: string; prop2: number }, "prop2">;
+type MyRequiredType = Required<{ prop1?: string; prop2?: number }>;
+type UnionType = Test | Test2;
+type OmitUnionType = Exclude<Test | Test2, "value1">;
+enum Direction {
+  Up,
+  Down,
+  Left,
+  Right,
+}
+type MyGenericType<T> = T | Test;
+type MyType = MyGenericType<Hobby>;
+type SelectedDirection = keyof typeof Direction;
 
 /**
  * Test component
+ *
+ * @tag my-component
  *
  * @prop {string} name - The name of the person to greet.
  * @prop {number} age - The age of the person to greet.
@@ -20,6 +40,7 @@ export class MyComponent extends HTMLElement {
   hobby: Hobby;
   test: Test;
   test2: Test2;
+  test3: Test | Test2;
 
   constructor() {
     super();
