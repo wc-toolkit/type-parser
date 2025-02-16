@@ -4,13 +4,86 @@
   "modules": [
     {
       "kind": "javascript-module",
-      "path": "demo/src/my-component.js",
+      "path": "demo/src/alt-types.ts",
+      "declarations": [],
+      "exports": []
+    },
+    {
+      "kind": "javascript-module",
+      "path": "demo/src/my-component.ts",
       "declarations": [
         {
           "kind": "class",
           "description": "Test component",
           "name": "MyComponent",
           "members": [
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "description": "The name of the person to greet."
+            },
+            {
+              "kind": "field",
+              "name": "age",
+              "type": {
+                "text": "number"
+              },
+              "description": "The age of the person to greet."
+            },
+            {
+              "kind": "field",
+              "name": "active",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the person is active."
+            },
+            {
+              "kind": "field",
+              "name": "hobby",
+              "type": {
+                "text": "Hobby"
+              },
+              "description": "The hobbies of the person to greet.",
+              "parsedType": {
+                "text": "'sports' | 'music' | 'art'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "test",
+              "type": {
+                "text": "Test"
+              },
+              "description": "The test2 of the person to greet.",
+              "parsedType": {
+                "text": "'value1' | 'value2' | 'value3'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "test2",
+              "type": {
+                "text": "Test2"
+              },
+              "description": "The test of the person to greet.",
+              "parsedType": {
+                "text": "'value4' | 'value5' | 'value6'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "test3",
+              "type": {
+                "text": "Test | Test2"
+              },
+              "parsedType": {
+                "text": "'value1' | 'value2' | 'value3' | 'value4' | 'value5' | 'value6'"
+              }
+            },
             {
               "kind": "method",
               "name": "render"
@@ -19,20 +92,6 @@
           "superclass": {
             "name": "HTMLElement"
           },
-          "status": {
-            "name": "beta",
-            "description": "A beta component"
-          },
-          "dependencies": [
-            {
-              "name": "Button",
-              "description": "A button component"
-            },
-            {
-              "name": "Icon",
-              "description": ""
-            }
-          ],
           "tagName": "my-component",
           "customElement": true
         }
@@ -43,7 +102,7 @@
           "name": "MyComponent",
           "declaration": {
             "name": "MyComponent",
-            "module": "demo/src/my-component.js"
+            "module": "demo/src/my-component.ts"
           }
         },
         {
@@ -51,7 +110,7 @@
           "name": "my-component",
           "declaration": {
             "name": "MyComponent",
-            "module": "demo/src/my-component.js"
+            "module": "demo/src/my-component.ts"
           }
         }
       ]
