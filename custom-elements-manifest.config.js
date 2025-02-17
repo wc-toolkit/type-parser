@@ -9,7 +9,7 @@ export default {
   dev: false,
   /** Output CEM path to `package.json`, defaults to true */
   packagejson: false,
-  plugins: [typeParserPlugin({ debug: true })],
+  plugins: [typeParserPlugin({ debug: false })],
   overrideModuleCreation({ ts, globs }) {
     const program = getTsProgram(ts, globs, "tsconfig.json");
     return program

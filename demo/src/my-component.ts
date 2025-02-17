@@ -26,21 +26,20 @@ type DirectionOptions = keyof typeof DirectionEnum;
  *
  * @tag my-component
  *
- * @prop {string} name - The name of the person to greet.
- * @prop {number} age - The age of the person to greet.
- * @prop {boolean} active - Whether the person is active.
- * @prop {Hobby} hobby - The hobbies of the person to greet.
- * @prop {Test} test - The test2 of the person to greet.
- * @prop {Test2} test2 - The test of the person to greet.
  */
 export class MyComponent extends HTMLElement {
   name: string;
   age: number;
   active: boolean;
-  hobby: Hobby;
-  test: Test;
-  test2: Test2;
+  internal: Hobby;
+  dtsExternal: Test;
+  tsExternal: Test2;
   test3: Test | Test2;
+  generic: MyGeneric;
+  exclude: ExcludeUnionType;
+  namedUnion: UnionType;
+  direction: DirectionOptions;
+  enumExample: DirectionEnum;
 
   constructor() {
     super();
