@@ -4,13 +4,130 @@
   "modules": [
     {
       "kind": "javascript-module",
-      "path": "demo/src/my-component.js",
+      "path": "demo/src/alt-types.ts",
+      "declarations": [],
+      "exports": []
+    },
+    {
+      "kind": "javascript-module",
+      "path": "demo/src/my-component.ts",
       "declarations": [
         {
           "kind": "class",
           "description": "Test component",
           "name": "MyComponent",
           "members": [
+            {
+              "kind": "field",
+              "name": "name",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "age",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "active",
+              "type": {
+                "text": "boolean"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "internal",
+              "type": {
+                "text": "Hobby"
+              },
+              "parsedType": {
+                "text": "'sports' | 'music' | 'art'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "dtsExternal",
+              "type": {
+                "text": "Test"
+              },
+              "parsedType": {
+                "text": "'value1' | 'value2' | 'value3'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "tsExternal",
+              "type": {
+                "text": "Test2"
+              },
+              "parsedType": {
+                "text": "'value4' | 'value5' | 'value6'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "test3",
+              "type": {
+                "text": "Test | Test2"
+              },
+              "parsedType": {
+                "text": "'value1' | 'value2' | 'value3' | 'value4' | 'value5' | 'value6'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "generic",
+              "type": {
+                "text": "MyGeneric"
+              },
+              "parsedType": {
+                "text": "'value1' | 'value2' | 'value3' | 'sports' | 'music' | 'art'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "exclude",
+              "type": {
+                "text": "ExcludeUnionType"
+              },
+              "parsedType": {
+                "text": "'value4' | 'value5' | 'value6' | 'value2' | 'value3'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "namedUnion",
+              "type": {
+                "text": "UnionType"
+              },
+              "parsedType": {
+                "text": "'value4' | 'value5' | 'value6' | 'value1' | 'value2' | 'value3'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "direction",
+              "type": {
+                "text": "DirectionOptions"
+              },
+              "parsedType": {
+                "text": "'Up' | 'Down' | 'Left' | 'Right'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "enumExample",
+              "type": {
+                "text": "DirectionEnum"
+              },
+              "parsedType": {
+                "text": "0 | 1 | 2 | 3"
+              }
+            },
             {
               "kind": "method",
               "name": "render"
@@ -19,20 +136,6 @@
           "superclass": {
             "name": "HTMLElement"
           },
-          "status": {
-            "name": "beta",
-            "description": "A beta component"
-          },
-          "dependencies": [
-            {
-              "name": "Button",
-              "description": "A button component"
-            },
-            {
-              "name": "Icon",
-              "description": ""
-            }
-          ],
           "tagName": "my-component",
           "customElement": true
         }
@@ -43,7 +146,7 @@
           "name": "MyComponent",
           "declaration": {
             "name": "MyComponent",
-            "module": "demo/src/my-component.js"
+            "module": "demo/src/my-component.ts"
           }
         },
         {
@@ -51,7 +154,7 @@
           "name": "my-component",
           "declaration": {
             "name": "MyComponent",
-            "module": "demo/src/my-component.js"
+            "module": "demo/src/my-component.ts"
           }
         }
       ]

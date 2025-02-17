@@ -1,6 +1,6 @@
 {
-  "name": "@wc-toolkit/jsdoc-tags",
-  "version": "1.0.2",
+  "name": "@wc-toolkit/type-parser",
+  "version": "0.0.0",
   "description": "A set of tools for retrieving and transforming data from the Custom Elements Manifest",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -19,7 +19,7 @@
     "/dist"
   ],
   "scripts": {
-    "analyze": "npm run build && cem analyze --globs demo/src/**/*.js --outdir demo",
+    "analyze": "npm run build && cem analyze",
     "changeset": "changeset add",
     "build": "tsup src/index.ts --dts --format cjs,esm",
     "clean": "git clean -fdX",
@@ -27,7 +27,7 @@
     "format": "prettier . --write",
     "lint": "eslint 'src/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
-    "test": "vitest --run --passWithNoTests",
+    "test": "npm run analyze && vitest --run --passWithNoTests",
     "prepare": "husky",
     "release": "pnpm run build && changeset publish --access=public"
   },
@@ -35,16 +35,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wc-toolkit/jsdoc-tags.git"
+    "url": "git+https://github.com/wc-toolkit/type-parser.git"
   },
   "bugs": {
-    "url": "https://github.com/wc-toolkit/jsdoc-tags/issues"
+    "url": "https://github.com/wc-toolkit/type-parser/issues"
   },
-  "homepage": "https://wc-toolkit.com/documentation/jsdoc-tags",
+  "homepage": "https://wc-toolkit.com/documentation/type-parser",
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
     "@custom-elements-manifest/analyzer": "^0.10.4",
     "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.2",
     "@wc-toolkit/cem-utilities": "^1.0.0",
     "comment-parser": "^1.4.1",
     "custom-elements-manifest": "2.1.0",
@@ -63,8 +64,8 @@
     "web-components",
     "components",
     "cem",
-    "jsdoc",
-    "@wc-toolkit/jsdoc-tags"
+    "typescript",
+    "@wc-toolkit/type-parser"
   ],
   "lint-staged": {
     "*.ts": "eslint --cache --fix",

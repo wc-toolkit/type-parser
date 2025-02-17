@@ -1,123 +1,78 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and jsdoc logos](https://raw.githubusercontent.com/wc-toolkit/jsdoc-tags/refs/heads/main/assets/wc-toolkit_jsdoc.png)
+![workbench with tools, html, css, javascript, and typescript logos](https://raw.githubusercontent.com/wc-toolkit/jsdoc-tags/refs/heads/main/assets/wc-toolkit_ts.png)
 
 </div>
 
-# WC Toolkit Custom JSDoc Tags Plugin
+# WC Toolkit Type Parser
 
-This is a plugin maps custom JSDoc tags on your component classes to properties in Custom Elements Manifest using the [Custom Element Manifest Analyzer](https://custom-elements-manifest.open-wc.org/).
+Using type aliases to define the types for your component’s APIs, can be helpful for keeping your code clean and organized as well as making your types reusable.
 
-## Installation 
+The down-side is that it can be difficult to integrate with other tooling or communicate in documentation what the available options are. 
+This plugin parses the types so they available in a more usable format.
+
+## Installation
 
 ```bash
-npm i -D @wc-toolkit/jsdoc-tags
+npm i -D @wc-toolkit/type-parser
 ```
 
 ## Usage
 
-Add the information you would like to include with you component in the class's JSDoc comment using custom tags. In this example, the `@dependency`, `@since`, `@status`, and `@spec` tags are all custom.
+Using type aliases to define the types for your component's APIs, can be helpful for keeping your code clean and organized as well as making your types reusable.
 
-```js
-// my-component.js
+```ts
+// my-component.ts
 
-/**
- *
- * My custom element does some amazing things
- *
- * @tag my-element
- *
- * @dependency icon
- * @dependency button
- *
- * @since 1.2.5
- * 
- * @status beta - not ready for production
- * 
- * @spec https://www.figma.com/...
- *
- */
-export class MyElement extends HTMLElement {
-  ...
+type Target = '_blank' | '_self' | '_parent' | '_top';
+
+class MyLink extends HTMLElement {
+  target?: Target;
 }
 ```
 
-In the [CEM analyzer config](https://custom-elements-manifest.open-wc.org/analyzer/config/), import the plugin and add the mappings for the new tags.
+This plugin parses the types for your component APIs in Custom Elements Manifest using the [Custom Element Manifest Analyzer](https://custom-elements-manifest.open-wc.org/analyzer/getting-started/).
 
 ```js
-// custom-elements-manifest.config.mjs
+// custom-elements-manifest.config.js
 
-import { jsDocTagsPlugin } from "@wc-toolkit/jsdoc-tags";
+import { getTsProgram, typeParserPlugin } from "@wc-toolkit/type-parser";
 
 export default {
   ...
-  /** Provide custom plugins */
-  plugins: [
-    jsDocTagsPlugin({
-      tags: {
-        // finds the values for the `@since` tag
-        since: {},
-        // finds the values for the `@status` tag
-        status: {},
-        // finds the values for the `@spec` tag
-        spec: {},
-        // finds the values for the `@dependency` tag
-        dependency: {
-          // maps the values to the `dependencies` property in the CEM
-          mappedName: 'dependencies',
-          // ensures the values are always in an array (even if there is only 1)
-          isArray: true,
-        },
-      }
-    }),
-  ],
+  // Give the plugin access to the TypeScript type checker
+  overrideModuleCreation({ts, globs}) {
+    const program = getTsProgram(ts, globs, "tsconfig.json");
+    return program
+      .getSourceFiles()
+      .filter((sf) => globs.find((glob) => sf.fileName.includes(glob)));
+  },
+
+  // Add the plugin to the config
+  plugins: [typeParserPlugin()],
 };
 ```
 
 ## Result
 
-The data should now be included in the Custom Elements Manifest.
+It doesn't overwrite the existing property, but will create a new property with the parsed type value.
 
 ```json
 // custom-elements.json
-
 {
-  "kind": "class",
-  "description": "My custom element does some amazing things",
-  "name": "MyElement",
-  "tagName": "my-element",
-  "since": {
-    "name": "1.2.5",
-    "description": ""
+  "kind": "field",
+  "name": "target",
+  "description": "A lookup type for example",
+  "attribute": "target",
+  "type": {
+    "text": "Target | undefined"
   },
-  "status": {
-    "name": "beta",
-    "description": "not ready for production"
-  },
-  "spec": {
-    "name": "https://www.figma.com/...",
-    "description": ""
-  },
-  "dependencies": [
-    {
-      "name": "icon",
-      "description": ""
-    },
-    {
-      "name": "button",
-      "description": ""
-    }
-  ]
+  "parsedType": {
+    "text": "'_blank' | '_self' | '_parent' | '_top' | undefined"
+  }
 }
 ```
 
-<div style="text-align: center; margin-top: 32px;">
-  <a href="https://stackblitz.com/edit/stackblitz-starters-endx3har?file=README.md">
-    <img
-      alt="Open in StackBlitz"
-      src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
-    />
-  </a>
-</div>
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/edit/stackblitz-starters-cngwm94d?file=README.md)
 
-Be sure to check out the [official docs](https://wc-toolkit.com/documentation/jsdoc-tags) for more information on how to use this.
+Be sure to check out the [official docs](https://wc-toolkit.com/documentation/type-parser) for more information on how to use this.
