@@ -59,6 +59,7 @@ It doesn't overwrite the existing property, but will create a new property with 
 
 ```json
 // custom-elements.json
+
 {
   "kind": "field",
   "name": "target",
