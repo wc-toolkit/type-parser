@@ -1,6 +1,6 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and typescript logos](https://raw.githubusercontent.com/wc-toolkit/jsdoc-tags/refs/heads/main/assets/wc-toolkit_ts.png)
+![workbench with tools, html, css, javascript, and typescript logos](https://raw.githubusercontent.com/wc-toolkit/type-parser/refs/heads/main/assets/wc-toolkit_ts.png)
 
 </div>
 
