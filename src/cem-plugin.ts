@@ -172,10 +172,8 @@ function getObjectTypes(fileName: string, typeName: string): string {
 
 function getFinalType(type: any): string {
   if(isTsType(type)) {
-    console.log("HTMLElement detected", type.flags, typeChecker.typeToString(type));
     return typeChecker.typeToString(type);
   }
-
   if (type.isUnion()) {
     return type.types.map(getFinalType).join(" | ");
   }
