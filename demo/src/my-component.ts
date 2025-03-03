@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Test2 } from "./alt-types";
 import type { Test } from "./types";
@@ -21,6 +22,32 @@ enum DirectionEnum {
 }
 type DirectionOptions = keyof typeof DirectionEnum;
 
+type Alignment = 'start' | 'end';
+type Side = 'top' | 'right' | 'bottom' | 'left';
+type AlignedPlacement = `${Side}-${Alignment}`;
+
+export type PopoverPosition = Side | AlignedPlacement;
+
+export interface PositionPopoverOptions {
+  arrowElement?: string | HTMLElement;
+  anchorElement?: string | HTMLAnchorElement;
+  arrowPadding?: number;
+  maxWidth?: number;
+  offset?: number;
+  position?: PopoverPosition;
+  viewportMargin?: number;
+  rootMarginTop?: number;
+}
+
+export type AnchorControllerConfig = PositionPopoverOptions;
+
+export interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'tertiary'
+  size: 'sm' | 'md' | 'lg'
+}
+
+type Variant = ButtonProps['variant'];
+
 /**
  * Test component
  *
@@ -40,6 +67,10 @@ export class MyComponent extends HTMLElement {
   namedUnion: UnionType;
   direction: DirectionOptions;
   enumExample: DirectionEnum;
+  variant: Variant = "primary";
+  foobar: { [key: string]: any } = { foo: 'bar' }
+  complexObject: PositionPopoverOptions;
+  omitType: MyOmitType;
 
   constructor() {
     super();

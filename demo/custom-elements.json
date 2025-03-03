@@ -129,6 +129,39 @@
               }
             },
             {
+              "kind": "field",
+              "name": "variant",
+              "type": {
+                "text": "Variant"
+              },
+              "default": "\"primary\"",
+              "parsedType": {
+                "text": "'primary' | 'secondary' | 'tertiary'"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "foobar",
+              "type": {
+                "text": "{ [key: string]: any }"
+              },
+              "default": "{ foo: 'bar' }"
+            },
+            {
+              "kind": "field",
+              "name": "complexObject",
+              "type": {
+                "text": "PositionPopoverOptions"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "omitType",
+              "type": {
+                "text": "MyOmitType"
+              }
+            },
+            {
               "kind": "method",
               "name": "render"
             }
