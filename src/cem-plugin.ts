@@ -171,6 +171,9 @@ function getObjectTypes(fileName: string, typeName: string): string {
 }
 
 function getFinalType(type: any): string {
+  if(isTsType(type)) {
+    return typeChecker.typeToString(type);
+  }
   if (type.isUnion()) {
     return type.types.map(getFinalType).join(" | ");
   }
@@ -231,8 +234,6 @@ function getFinalType(type: any): string {
     return enumValues.join(" | ");
   }
 
-  // Add more type checks as needed
-
   // Get properties if the type is an object
   if (type.isClassOrInterface() || type.flags & typeScript.TypeFlags.Object) {
     const properties = typeChecker.getPropertiesOfType(type);
@@ -250,6 +251,19 @@ function getFinalType(type: any): string {
   }
 
   return typeChecker.typeToString(type);
+}
+
+function isTsType(type: ts.Type): boolean {
+  const symbol = type.getSymbol();
+  if (!symbol) return false;
+
+  const declarations = symbol.getDeclarations();
+  if (!declarations || declarations.length === 0) return false;
+
+  return declarations.some((decl) => {
+    const sourceFile = decl.getSourceFile();
+    return sourceFile.fileName.includes('node_modules/typescript');
+  });
 }
 
 // Visit each node in the source file
