@@ -1,5 +1,11 @@
 # @wc-toolkit/type-parser
 
+## 1.0.2
+
+### Patch Changes
+
+- 85ed983: Fixed error when trying to parse TypeScript types
+
 ## 1.0.1
 
 ### Patch Changes
