@@ -171,7 +171,7 @@ function getObjectTypes(fileName: string, typeName: string): string {
 }
 
 function getFinalType(type: any): string {
-  if(isTsType(type)) {
+  if(isNpmType(type)) {
     return typeChecker.typeToString(type);
   }
   if (type.isUnion()) {
@@ -253,7 +253,7 @@ function getFinalType(type: any): string {
   return typeChecker.typeToString(type);
 }
 
-function isTsType(type: ts.Type): boolean {
+function isNpmType(type: ts.Type): boolean {
   const symbol = type.getSymbol();
   if (!symbol) return false;
 
@@ -262,7 +262,7 @@ function isTsType(type: ts.Type): boolean {
 
   return declarations.some((decl) => {
     const sourceFile = decl.getSourceFile();
-    return sourceFile.fileName.includes('node_modules/typescript');
+    return sourceFile.fileName.includes('node_modules');
   });
 }
 
