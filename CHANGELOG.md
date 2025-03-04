@@ -1,5 +1,11 @@
 # @wc-toolkit/type-parser
 
+## 1.0.3
+
+### Patch Changes
+
+- 5f75ef6: Excluded `mode_modules` from parser to prevent infinite loops
+
 ## 1.0.2
 
 ### Patch Changes
