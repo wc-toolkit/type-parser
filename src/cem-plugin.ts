@@ -139,8 +139,7 @@ function getParsedType(fileName: string, typeName: string): string {
     return Object.values(groupedTypes[typeName])[0];
   }
 
-  // NEW: If typeName is an interface or type alias, try to resolve its structure
-  // by looking up the type in the TypeScript program and using getFinalType
+  // if typeName is an interface or type alias, try to resolve its structure
   if (typeChecker && typeScript) {
     const sourceFile = typeChecker.getProgram().getSourceFile(fileName);
     if (sourceFile) {
@@ -239,10 +238,12 @@ function getFinalType(type: any): string {
   if (type.flags & typeScript.TypeFlags.ESSymbol) {
     return "symbol";
   }
+
   if (type.flags & typeScript.TypeFlags.StringLiteral) {
     const value = (type as ts.LiteralType).value as string;
-    return `\'${value}\'`;
+    return `"${value}"`;
   }
+
   if (
     type.flags & typeScript.TypeFlags.NumberLiteral ||
     type.flags & typeScript.TypeFlags.BigIntLiteral
@@ -250,12 +251,14 @@ function getFinalType(type: any): string {
     const value = (type as ts.LiteralType).value as number;
     return `${value}`;
   }
+
   if (type.flags & typeScript.TypeFlags.Enum) {
     const enumType = type as ts.EnumType;
     const enumMembers = typeChecker.getPropertiesOfType(enumType);
     const enumValues = enumMembers.map((member: { name: any }) => member.name);
     return enumValues.join(" | ");
   }
+
   // Get properties if the type is an object
   if (type.isClassOrInterface() || type.flags & typeScript.TypeFlags.Object) {
     const properties = typeChecker.getPropertiesOfType(type);
@@ -287,7 +290,7 @@ function getFinalType(type: any): string {
     );
     return `{ ${props.join(", ")} }`;
   }
-  // Final fallback
+
   return typeChecker.typeToString(type);
 }
 
@@ -416,7 +419,7 @@ function updateParsedTypes(component: Component, context: any) {
     const typeValue = getTypeValue(member, context);
     if (typeValue !== member.type.text) {
       member[propName] = {
-        text: typeValue, // Preserve double quotes for string literals
+        text: typeValue.replace(/"/g, "'"),
       };
     }
   });
