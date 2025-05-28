@@ -139,6 +139,23 @@ function getParsedType(fileName: string, typeName: string): string {
     return Object.values(groupedTypes[typeName])[0];
   }
 
+  // NEW: If typeName is an interface or type alias, try to resolve its structure
+  // by looking up the type in the TypeScript program and using getFinalType
+  if (typeChecker && typeScript) {
+    const sourceFile = typeChecker.getProgram().getSourceFile(fileName);
+    if (sourceFile) {
+      const symbols = typeChecker.getSymbolsInScope(
+        sourceFile,
+        typeScript.SymbolFlags.Type
+      );
+      const symbol = symbols.find((s: any) => s.name === typeName);
+      if (symbol) {
+        const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
+        return getFinalType(type);
+      }
+    }
+  }
+
   return typeName;
 }
 
@@ -175,7 +192,16 @@ function getFinalType(type: any): string {
     return typeChecker.typeToString(type);
   }
   if (type.isUnion()) {
-    return type.types.map(getFinalType).join(" | ");
+    // If the union includes undefined, treat as optional
+    const types = type.types;
+    const hasUndefined = types.some((t: any) => t.flags & typeScript.TypeFlags.Undefined);
+    const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
+    const unionStr = nonUndefinedTypes.map(getFinalType).join(" | ");
+    if (hasUndefined && nonUndefinedTypes.length === 1) {
+      // handled in property formatting below
+      return unionStr + ' (optional)';
+    }
+    return types.map(getFinalType).join(" | ");
   }
   if (type.isIntersection()) {
     return type.types.map(getFinalType).join(" & ");
@@ -213,12 +239,10 @@ function getFinalType(type: any): string {
   if (type.flags & typeScript.TypeFlags.ESSymbol) {
     return "symbol";
   }
-
   if (type.flags & typeScript.TypeFlags.StringLiteral) {
     const value = (type as ts.LiteralType).value as string;
-    return `"${value}"`;
+    return `\'${value}\'`;
   }
-
   if (
     type.flags & typeScript.TypeFlags.NumberLiteral ||
     type.flags & typeScript.TypeFlags.BigIntLiteral
@@ -226,14 +250,12 @@ function getFinalType(type: any): string {
     const value = (type as ts.LiteralType).value as number;
     return `${value}`;
   }
-
   if (type.flags & typeScript.TypeFlags.Enum) {
     const enumType = type as ts.EnumType;
     const enumMembers = typeChecker.getPropertiesOfType(enumType);
     const enumValues = enumMembers.map((member: { name: any }) => member.name);
     return enumValues.join(" | ");
   }
-
   // Get properties if the type is an object
   if (type.isClassOrInterface() || type.flags & typeScript.TypeFlags.Object) {
     const properties = typeChecker.getPropertiesOfType(type);
@@ -243,13 +265,29 @@ function getFinalType(type: any): string {
           prop,
           prop.valueDeclaration!
         );
-        const propTypeString = getFinalType(propType);
-        return `${prop.name}: ${propTypeString}`;
+        // Check if the property type is a union with undefined
+        let typeStr = getFinalType(propType);
+        let isOptional = false;
+        if (propType.isUnion && propType.isUnion()) {
+          const types = propType.types;
+          const hasUndefined = types.some((t: any) => t.flags & typeScript.TypeFlags.Undefined);
+          if (hasUndefined) {
+            isOptional = true;
+            const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
+            typeStr = nonUndefinedTypes.map(getFinalType).join(" | ");
+          }
+        }
+        // If the type is exactly undefined | T, treat as optional
+        if (!isOptional && typeStr.endsWith(' (optional)')) {
+          isOptional = true;
+          typeStr = typeStr.replace(' (optional)', '');
+        }
+        return `${prop.name}${isOptional ? '?' : ''}: ${typeStr}`;
       }
     );
     return `{ ${props.join(", ")} }`;
   }
-
+  // Final fallback
   return typeChecker.typeToString(type);
 }
 
@@ -378,7 +416,7 @@ function updateParsedTypes(component: Component, context: any) {
     const typeValue = getTypeValue(member, context);
     if (typeValue !== member.type.text) {
       member[propName] = {
-        text: typeValue.replace(/"/g, "'"),
+        text: typeValue, // Preserve double quotes for string literals
       };
     }
   });
