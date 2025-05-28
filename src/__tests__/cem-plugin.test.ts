@@ -111,7 +111,7 @@ describe('type-parser', () => {
     
     // Assert
     expect(complexObject?.parsedType?.text).toEqual(
-      '{ arrowElement?: string | HTMLElement, anchorElement?: string | HTMLAnchorElement, arrowPadding?: number, maxWidth?: number, offset?: number, position?: \'top\' | \'right\' | \'bottom\' | \'left\' | \'top-start\' | \'top-end\' | \'right-start\' | \'right-end\' | \'bottom-start\' | \'bottom-end\' | \'left-start\' | \'left-end\', viewportMargin?: number, rootMarginTop?: number }'
+      "{ arrowElement?: string | HTMLElement, anchorElement?: string | HTMLAnchorElement, arrowPadding?: number, maxWidth?: number, offset?: number, position?: 'top' | 'right' | 'bottom' | 'left' | 'top-start' | 'top-end' | 'right-start' | 'right-end' | 'bottom-start' | 'bottom-end' | 'left-start' | 'left-end', viewportMargin?: number, rootMarginTop?: number }"
     );
   });
 });
