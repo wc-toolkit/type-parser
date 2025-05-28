@@ -268,19 +268,11 @@ function isNpmType(type: ts.Type): boolean {
 
 // Visit each node in the source file
 function visitNode(node: any) {
-  if (typeScript.isTypeAliasDeclaration(node)) {
-    const symbol = typeChecker.getSymbolAtLocation(node.name);
-    if (symbol) {
-      const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
-      const finalType = getFinalType(type);
-      log.log(
-        `Type alias '${node.name.text}' has final computed type: ${finalType}`
-      );
-      aliasTypes[currentFilename][node.name.text] = finalType;
-    }
-  }
-
-  if (typeScript.isEnumDeclaration(node)) {
+  if (
+    typeScript.isTypeAliasDeclaration(node) ||
+    typeScript.isEnumDeclaration(node) ||
+    typeScript.isInterfaceDeclaration(node)
+  ) {
     const symbol = typeChecker.getSymbolAtLocation(node.name);
     if (symbol) {
       const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
