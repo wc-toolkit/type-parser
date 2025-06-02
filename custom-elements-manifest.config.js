@@ -11,7 +11,7 @@ export default {
   packagejson: false,
   plugins: [typeParserPlugin({
     debug: false,
-    parseObjectTypes: "full"
+    parseObjectTypes: "none"
   })],
   overrideModuleCreation({ ts, globs }) {
     const program = getTsProgram(ts, globs, "tsconfig.json");
