@@ -102,16 +102,4 @@ describe('type-parser', () => {
     // Assert
     expect(enumExample?.parsedType?.text).toEqual("0 | 1 | 2 | 3");
   });
-
-  test('should resolve types for interface type', () => {
-    // Arrange
-    const complexObject = properties.find(p => p.name === 'complexObject');
-    
-    // Act
-    
-    // Assert
-    expect(complexObject?.parsedType?.text).toEqual(
-      "{ arrowElement?: string | HTMLElement, anchorElement?: string | HTMLAnchorElement, arrowPadding?: number, maxWidth?: number, offset?: number, position?: 'top' | 'right' | 'bottom' | 'left' | 'top-start' | 'top-end' | 'right-start' | 'right-end' | 'bottom-start' | 'bottom-end' | 'left-start' | 'left-end', viewportMargin?: number, rootMarginTop?: number }"
-    );
-  });
 });

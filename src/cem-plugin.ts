@@ -7,6 +7,8 @@ import type ts from "typescript";
 
 /** Options for configuring the CEM Type Parser plugin */
 export interface Options {
+  /** Controls whether object types are parsed, and if so, whether fully or partially ('none', 'partial', 'full') */
+  parseObjectTypes?: string;
   /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
   /** Shows output logs used for debugging */
@@ -46,6 +48,7 @@ let typeScript: typeof import("typescript");
 let tsConfigFile: any;
 let log: Logger;
 const defaultOptions: Options = {
+  parseObjectTypes: "none",
   propertyName: "parsedType",
 };
 
@@ -312,7 +315,7 @@ function visitNode(node: any) {
   if (
     typeScript.isTypeAliasDeclaration(node) ||
     typeScript.isEnumDeclaration(node) ||
-    typeScript.isInterfaceDeclaration(node)
+    (typeScript.isInterfaceDeclaration(node) && options.parseObjectTypes !== "none")
   ) {
     const symbol = typeChecker.getSymbolAtLocation(node.name);
     if (symbol) {
