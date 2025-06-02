@@ -152,6 +152,9 @@
               "name": "complexObject",
               "type": {
                 "text": "PositionPopoverOptions"
+              },
+              "parsedType": {
+                "text": "{ arrowElement?: string | HTMLElement | undefined, anchorElement?: string | HTMLAnchorElement | undefined, arrowPadding?: number, maxWidth?: number, offset?: number, position?: PopoverPosition | undefined, viewportMargin?: number, rootMarginTop?: number }"
               }
             },
             {

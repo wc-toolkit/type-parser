@@ -271,19 +271,48 @@ function getFinalType(type: any): string {
           prop,
           prop.valueDeclaration!
         );
-        // Check if the property type is a union with undefined
-        let typeStr = getFinalType(propType);
+        let typeStr: string;
         let isOptional = false;
         if (propType.isUnion && propType.isUnion()) {
           const types = propType.types;
           const hasUndefined = types.some((t: any) => t.flags & typeScript.TypeFlags.Undefined);
+          const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
           if (hasUndefined) {
             isOptional = true;
-            const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
+          }
+          if (options.parseObjectTypes === "partial") {
+            // If all non-undefined types are primitives, show them, else use type name
+            const typeNames = nonUndefinedTypes.map((t: any) => typeChecker.typeToString(t));
+            if ((typeNames as string[]).every((tStr: string) => primitives.includes(tStr))) {
+              typeStr = typeNames.join(" | ");
+            } else {
+              typeStr = typeChecker.typeToString(propType);
+            }
+          } else {
             typeStr = nonUndefinedTypes.map(getFinalType).join(" | ");
           }
+        } else {
+          if (options.parseObjectTypes === "partial") {
+            const tStr = typeChecker.typeToString(propType);
+            if (primitives.includes(tStr)) {
+              typeStr = tStr;
+            } else {
+              // If it's an inline type (object literal), expand, else use type name
+              if (propType.symbol && propType.symbol.name && propType.symbol.name !== "__type") {
+                typeStr = tStr;
+              } else if (propType.isClassOrInterface && propType.isClassOrInterface()) {
+                typeStr = tStr;
+              } else if (propType.objectFlags && propType.objectFlags & typeScript.ObjectFlags.Anonymous) {
+                // Inline object literal
+                typeStr = getFinalType(propType);
+              } else {
+                typeStr = tStr;
+              }
+            }
+          } else {
+            typeStr = getFinalType(propType);
+          }
         }
-        // If the type is exactly undefined | T, treat as optional
         if (!isOptional && typeStr.endsWith(' (optional)')) {
           isOptional = true;
           typeStr = typeStr.replace(' (optional)', '');
