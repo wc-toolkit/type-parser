@@ -5,8 +5,12 @@ import { deepMerge, type Component } from "@wc-toolkit/cem-utilities";
 import { Logger } from "./logger.js";
 import type ts from "typescript";
 
+export type ParseObjectTypesMode = 'none' | 'partial' | 'full';
+
 /** Options for configuring the CEM Type Parser plugin */
 export interface Options {
+  /** Controls whether object types are parsed, and if so, whether fully or partially ('none', 'partial', 'full') */
+  parseObjectTypes?: ParseObjectTypesMode;
   /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
   /** Shows output logs used for debugging */
@@ -46,6 +50,7 @@ let typeScript: typeof import("typescript");
 let tsConfigFile: any;
 let log: Logger;
 const defaultOptions: Options = {
+  parseObjectTypes: "none",
   propertyName: "parsedType",
 };
 
@@ -137,6 +142,22 @@ function getParsedType(fileName: string, typeName: string): string {
 
   if (Object.entries(groupedTypes[typeName]).length === 1) {
     return Object.values(groupedTypes[typeName])[0];
+  }
+
+  // if typeName is an interface or type alias, try to resolve its structure
+  if (typeChecker && typeScript) {
+    const sourceFile = typeChecker.getProgram().getSourceFile(fileName);
+    if (sourceFile) {
+      const symbols = typeChecker.getSymbolsInScope(
+        sourceFile,
+        typeScript.SymbolFlags.Type
+      );
+      const symbol = symbols.find((s: any) => s.name === typeName);
+      if (symbol) {
+        const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
+        return getFinalType(type);
+      }
+    }
   }
 
   return typeName;
@@ -243,8 +264,48 @@ function getFinalType(type: any): string {
           prop,
           prop.valueDeclaration!
         );
-        const propTypeString = getFinalType(propType);
-        return `${prop.name}: ${propTypeString}`;
+        let typeStr: string;
+        let isOptional = false;
+        if (propType.isUnion && propType.isUnion()) {
+          const types = propType.types;
+          const hasUndefined = types.some((t: any) => t.flags & typeScript.TypeFlags.Undefined);
+          const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
+          if (hasUndefined) {
+            isOptional = true;
+          }
+          if (options.parseObjectTypes === "partial") {
+            // If all non-undefined types are primitives, show them, else use type name
+            const typeNames = nonUndefinedTypes.map((t: any) => typeChecker.typeToString(t));
+            if ((typeNames as string[]).every((tStr: string) => primitives.includes(tStr))) {
+              typeStr = typeNames.join(" | ");
+            } else {
+              typeStr = typeChecker.typeToString(propType);
+            }
+          } else {
+            typeStr = nonUndefinedTypes.map(getFinalType).join(" | ");
+          }
+        } else {
+          if (options.parseObjectTypes === "partial") {
+            const tStr = typeChecker.typeToString(propType);
+            if (primitives.includes(tStr)) {
+              typeStr = tStr;
+            } else {
+              // If it's an inline type (object literal), expand, else use type name
+              if (propType.objectFlags && propType.objectFlags & typeScript.ObjectFlags.Anonymous) {
+                typeStr = getFinalType(propType);
+              } else {
+                typeStr = tStr;
+              }
+            }
+          } else {
+            typeStr = getFinalType(propType);
+          }
+        }
+        if (!isOptional && typeStr.endsWith(' (optional)')) {
+          isOptional = true;
+          typeStr = typeStr.replace(' (optional)', '');
+        }
+        return `${prop.name}${isOptional ? '?' : ''}: ${typeStr}`;
       }
     );
     return `{ ${props.join(", ")} }`;
@@ -268,19 +329,11 @@ function isNpmType(type: ts.Type): boolean {
 
 // Visit each node in the source file
 function visitNode(node: any) {
-  if (typeScript.isTypeAliasDeclaration(node)) {
-    const symbol = typeChecker.getSymbolAtLocation(node.name);
-    if (symbol) {
-      const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
-      const finalType = getFinalType(type);
-      log.log(
-        `Type alias '${node.name.text}' has final computed type: ${finalType}`
-      );
-      aliasTypes[currentFilename][node.name.text] = finalType;
-    }
-  }
-
-  if (typeScript.isEnumDeclaration(node)) {
+  if (
+    typeScript.isTypeAliasDeclaration(node) ||
+    typeScript.isEnumDeclaration(node) ||
+    (typeScript.isInterfaceDeclaration(node) && options.parseObjectTypes !== "none")
+  ) {
     const symbol = typeChecker.getSymbolAtLocation(node.name);
     if (symbol) {
       const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
