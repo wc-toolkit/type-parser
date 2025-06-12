@@ -1,5 +1,11 @@
 # @wc-toolkit/type-parser
 
+## 1.1.0
+
+### Minor Changes
+
+- bb312ca: Add parseObjectTypes config option to add interface/object types to CEM
+
 ## 1.0.3
 
 ### Patch Changes
