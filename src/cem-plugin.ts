@@ -5,10 +5,12 @@ import { deepMerge, type Component } from "@wc-toolkit/cem-utilities";
 import { Logger } from "./logger.js";
 import type ts from "typescript";
 
+export type ParseObjectTypesMode = 'none' | 'partial' | 'full';
+
 /** Options for configuring the CEM Type Parser plugin */
 export interface Options {
   /** Controls whether object types are parsed, and if so, whether fully or partially ('none', 'partial', 'full') */
-  parseObjectTypes?: string;
+  parseObjectTypes?: ParseObjectTypesMode;
   /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
   /** Shows output logs used for debugging */
@@ -194,16 +196,7 @@ function getFinalType(type: any): string {
     return typeChecker.typeToString(type);
   }
   if (type.isUnion()) {
-    // If the union includes undefined, treat as optional
-    const types = type.types;
-    const hasUndefined = types.some((t: any) => t.flags & typeScript.TypeFlags.Undefined);
-    const nonUndefinedTypes = types.filter((t: any) => !(t.flags & typeScript.TypeFlags.Undefined));
-    const unionStr = nonUndefinedTypes.map(getFinalType).join(" | ");
-    if (hasUndefined && nonUndefinedTypes.length === 1) {
-      // handled in property formatting below
-      return unionStr + ' (optional)';
-    }
-    return types.map(getFinalType).join(" | ");
+    return type.types.map(getFinalType).join(" | ");
   }
   if (type.isIntersection()) {
     return type.types.map(getFinalType).join(" & ");
@@ -298,12 +291,7 @@ function getFinalType(type: any): string {
               typeStr = tStr;
             } else {
               // If it's an inline type (object literal), expand, else use type name
-              if (propType.symbol && propType.symbol.name && propType.symbol.name !== "__type") {
-                typeStr = tStr;
-              } else if (propType.isClassOrInterface && propType.isClassOrInterface()) {
-                typeStr = tStr;
-              } else if (propType.objectFlags && propType.objectFlags & typeScript.ObjectFlags.Anonymous) {
-                // Inline object literal
+              if (propType.objectFlags && propType.objectFlags & typeScript.ObjectFlags.Anonymous) {
                 typeStr = getFinalType(propType);
               } else {
                 typeStr = tStr;
