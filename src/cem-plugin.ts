@@ -437,7 +437,16 @@ function updateParsedTypes(component: Component, context: any) {
 
   typedMembers.forEach((member) => {
     if (member.kind === "method" && member.parameters?.length > 0) {
-      // TODO: member.parameters.forEach();
+      member.parameters.forEach((param: any, i: number) => {
+        if (param.type?.text) {
+          const typeValue = getTypeValue(param, context);
+          if (typeValue !== param.type.text) {
+            member.parameters[i][propName] = {
+              text: typeValue.replace(/"/g, "'"),
+            };
+          }
+        }
+      });
     } else {
       const typeValue = getTypeValue(member, context);
       if (typeValue !== member.type.text) {
