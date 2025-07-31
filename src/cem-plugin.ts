@@ -391,7 +391,7 @@ function getTypedMembers(component: Component) {
       ...(component.members || []),
       ...(component.events || []),
     ] as any[]
-  ).filter((item) => item?.type);
+  ).filter((item) => item?.type || item?.parameters?.type);
 }
 
 function getTypeValue(item: any, context: any) {
@@ -436,11 +436,15 @@ function updateParsedTypes(component: Component, context: any) {
   const propName = options.propertyName || "parsedType";
 
   typedMembers.forEach((member) => {
-    const typeValue = getTypeValue(member, context);
-    if (typeValue !== member.type.text) {
-      member[propName] = {
-        text: typeValue.replace(/"/g, "'"),
-      };
+    if (member.kind === "method" && member.parameters?.length > 0) {
+      // TODO: member.parameters.forEach();
+    } else {
+      const typeValue = getTypeValue(member, context);
+      if (typeValue !== member.type.text) {
+        member[propName] = {
+          text: typeValue.replace(/"/g, "'"),
+        };
+      }
     }
   });
 }
