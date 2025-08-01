@@ -11,6 +11,8 @@ export type ParseObjectTypesMode = 'none' | 'partial' | 'full';
 export interface Options {
   /** Controls whether object types are parsed, and if so, whether fully or partially ('none', 'partial', 'full') */
   parseObjectTypes?: ParseObjectTypesMode;
+  /** Controls whether method parameters are parsed */
+  parseParameters?: boolean;
   /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
   /** Shows output logs used for debugging */
@@ -51,6 +53,7 @@ let tsConfigFile: any;
 let log: Logger;
 const defaultOptions: Options = {
   parseObjectTypes: "none",
+  parseParameters: false,
   propertyName: "parsedType",
 };
 
@@ -391,7 +394,7 @@ function getTypedMembers(component: Component) {
       ...(component.members || []),
       ...(component.events || []),
     ] as any[]
-  ).filter((item) => item?.type);
+  ).filter((item) => item?.type || (options.parseParameters && item?.parameters?.length));
 }
 
 function getTypeValue(item: any, context: any) {
@@ -436,11 +439,24 @@ function updateParsedTypes(component: Component, context: any) {
   const propName = options.propertyName || "parsedType";
 
   typedMembers.forEach((member) => {
-    const typeValue = getTypeValue(member, context);
-    if (typeValue !== member.type.text) {
-      member[propName] = {
-        text: typeValue.replace(/"/g, "'"),
-      };
+    if (member.parameters?.length) {
+      member.parameters.forEach((param, i) => {
+        if (param.type?.text) {
+          const typeValue = getTypeValue(param, context);
+          if (typeValue !== param.type.text) {
+            member.parameters[i][propName] = {
+              text: typeValue.replace(/"/g, "'"),
+            };
+          }
+        }
+      });
+    } else {
+      const typeValue = getTypeValue(member, context);
+      if (typeValue !== member.type.text) {
+        member[propName] = {
+          text: typeValue.replace(/"/g, "'"),
+        };
+      }
     }
   });
 }
