@@ -1,5 +1,11 @@
 # @wc-toolkit/type-parser
 
+## 1.2.0
+
+### Minor Changes
+
+- 5995e59: Add config option for parsing method parameters
+
 ## 1.1.0
 
 ### Minor Changes
