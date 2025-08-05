@@ -440,7 +440,7 @@ function updateParsedTypes(component: Component, context: any) {
 
   typedMembers.forEach((member) => {
     if (member.parameters?.length) {
-      member.parameters.forEach((param, i) => {
+      member.parameters.forEach((param: any, i: number) => {
         if (param.type?.text) {
           const typeValue = getTypeValue(param, context);
           if (typeValue !== param.type.text) {
