@@ -1,5 +1,11 @@
 # @wc-toolkit/type-parser
 
+## 1.2.1
+
+### Patch Changes
+
+- c2eb8e0: Fix Windows manifest module paths by converting absolute paths to relative paths consistently during analysis.
+
 ## 1.2.0
 
 ### Minor Changes
