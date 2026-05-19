@@ -123,6 +123,10 @@ export function getTsProgram(
   return program;
 }
 
+function normalizeModulePath(modulePath: string, cwd = process.cwd()) {
+  return path.relative(cwd, modulePath).split(path.sep).join("/");
+}
+
 function getParsedType(fileName: string, typeName: string): string {
   if (typeName?.includes("|")) {
     return getUnionTypes(fileName, typeName);
@@ -363,7 +367,7 @@ function groupTypesByName() {
 }
 
 function analyzePhase({ ts, node, moduleDoc, context }: any) {
-  moduleDoc.path = moduleDoc.path.replace(`${process.cwd()}/`, "");
+  moduleDoc.path = normalizeModulePath(moduleDoc.path);
   if (node.kind === ts.SyntaxKind.SourceFile) {
     currentFilename = path.resolve(node.fileName);
   }

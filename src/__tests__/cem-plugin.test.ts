@@ -1,7 +1,9 @@
+import path from "path";
 import { describe, expect, test } from "vitest";
 import cem from '../../demo/custom-elements.json' with { type: 'json' };
 import { getComponentByClassName, getComponentPublicProperties } from "@wc-toolkit/cem-utilities";
 import { Property } from "@wc-toolkit/cem-utilities";
+import { typeParserPlugin } from "../cem-plugin.js";
 
 
 describe('type-parser', () => {
@@ -101,5 +103,22 @@ describe('type-parser', () => {
     
     // Assert
     expect(enumExample?.parsedType?.text).toEqual("0 | 1 | 2 | 3");
+  });
+
+  test('should normalize absolute module paths to relative manifest paths', () => {
+    const plugin = typeParserPlugin({});
+    const moduleDoc = {
+      path: path.resolve('demo/src/my-component.ts'),
+      declarations: [],
+    };
+
+    plugin?.analyzePhase?.({
+      ts: { SyntaxKind: { SourceFile: 0, ClassDeclaration: 1 } },
+      node: { kind: -1 },
+      moduleDoc,
+      context: {},
+    });
+
+    expect(moduleDoc.path).toEqual('demo/src/my-component.ts');
   });
 });
