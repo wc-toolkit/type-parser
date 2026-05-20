@@ -159,6 +159,9 @@
               "name": "omitType",
               "type": {
                 "text": "MyOmitType"
+              },
+              "parsedType": {
+                "text": "{ prop1: string }"
               }
             },
             {

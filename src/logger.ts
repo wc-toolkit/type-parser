@@ -13,6 +13,10 @@ export class Logger {
     console.log(color, message);
   }
 
+  warn(message: string) {
+    console.warn("\x1b[33m%s\x1b[0m", message);
+  }
+
   red(message: string) {
     this.log(message, "\x1b[31m%s\x1b[0m");
   }

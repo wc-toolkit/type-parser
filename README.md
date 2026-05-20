@@ -8,7 +8,7 @@
 
 Using type aliases to define the types for your component’s APIs, can be helpful for keeping your code clean and organized as well as making your types reusable.
 
-The down-side is that it can be difficult to integrate with other tooling or communicate in documentation what the available options are. 
+The down-side is that it can be difficult to integrate with other tooling or communicate in documentation what the available options are.
 This plugin parses the types so they available in a more usable format.
 
 ## Installation
@@ -24,7 +24,7 @@ Using type aliases to define the types for your component's APIs, can be helpful
 ```ts
 // my-component.ts
 
-type Target = '_blank' | '_self' | '_parent' | '_top';
+type Target = "_blank" | "_self" | "_parent" | "_top";
 
 class MyLink extends HTMLElement {
   target?: Target;
@@ -32,6 +32,8 @@ class MyLink extends HTMLElement {
 ```
 
 This plugin parses the types for your component APIs in Custom Elements Manifest using the [Custom Element Manifest Analyzer](https://custom-elements-manifest.open-wc.org/analyzer/getting-started/).
+
+If a type cannot be safely expanded, such as a recursive or overly complex external type, the plugin keeps the original type text and logs a warning with the type name, declaration location, and reason it was skipped.
 
 ```js
 // custom-elements-manifest.config.js
