@@ -1,5 +1,13 @@
 # @wc-toolkit/type-parser
 
+## 1.2.2
+
+### Patch Changes
+
+- e924dbd: Improve type parsing fallbacks for complex and recursive aliases.
+
+  The parser now preserves manifest generation by warning and falling back to the original type text when a type cannot be safely expanded, and it resolves more object-based utility types such as `Omit`.
+
 ## 1.2.1
 
 ### Patch Changes
