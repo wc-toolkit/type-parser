@@ -58,6 +58,7 @@ const MAX_PARSE_PROPERTIES = 50;
 
 let currentFilename = "";
 let typeChecker: any;
+let program: any;
 let options: Options;
 let typeScript: typeof import("typescript");
 let log: Logger;
@@ -66,6 +67,7 @@ const defaultOptions: Options = {
   parseObjectTypes: "none",
   parseParameters: false,
   propertyName: "parsedType",
+  debug: false,
 };
 
 /**
@@ -151,7 +153,7 @@ export function getTsProgram(
     rootFileNames.add(path.resolve(fileName));
   }
 
-  const program = ts.createProgram([...rootFileNames], parsedConfig.options);
+  program = ts.createProgram([...rootFileNames], parsedConfig.options);
   const exclusions = [...(parsedConfig.raw?.exclude ?? []), "node_modules"];
 
   typeScript = ts;
@@ -166,6 +168,14 @@ export function getTsProgram(
   }
 
   groupTypesByName();
+  return program;
+}
+
+export function getTypeChecker(): any {
+  return typeChecker;
+}
+
+export function getProgram(): any {
   return program;
 }
 
@@ -240,8 +250,8 @@ function getParsedType(
     return Object.values(groupedTypes[typeName])[0];
   }
 
-  if (typeChecker && typeScript) {
-    const sourceFile = typeChecker.getProgram().getSourceFile(fileName);
+  if (typeChecker && typeScript && program) {
+    const sourceFile = program.getSourceFile(fileName);
     if (sourceFile) {
       const symbols = typeChecker.getSymbolsInScope(
         sourceFile,
