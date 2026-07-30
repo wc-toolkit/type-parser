@@ -166,4 +166,45 @@ describe("type-parser", () => {
       /node_modules\/typescript\/lib|node_modules\\\\typescript\\\\lib/,
     );
   });
+
+  test("should resolve compilerOptions inherited via tsconfig `extends`", () => {
+    const extendingConfigDir = path.resolve(
+      "src/__fixtures__/tsconfig-extends",
+    );
+    const sampleFile = path.join(extendingConfigDir, "sample.ts");
+    const originalCwd = process.cwd();
+    process.chdir(extendingConfigDir);
+
+    try {
+      const program = getTsProgram(ts, [sampleFile], "tsconfig.json");
+
+      expect(program.getCompilerOptions().target).toEqual(
+        ts.ScriptTarget.ES2018,
+      );
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  test("should include files matched by tsconfig `include` and exclude files matched by `exclude`, even when not passed as globs", () => {
+    const configDir = path.resolve("src/__fixtures__/tsconfig-include-exclude");
+    const originalCwd = process.cwd();
+    process.chdir(configDir);
+
+    try {
+      const program = getTsProgram(ts, [], "tsconfig.json");
+      const sourceFileNames = program
+        .getSourceFiles()
+        .map((sourceFile) => sourceFile.fileName);
+
+      expect(sourceFileNames.some((name) => name.endsWith("included.ts"))).toBe(
+        true,
+      );
+      expect(sourceFileNames.some((name) => name.endsWith("excluded.ts"))).toBe(
+        false,
+      );
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
 });

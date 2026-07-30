@@ -108,6 +108,9 @@ export function getTsProgram(
   log ??= new Logger(options.debug);
   resetParserState();
 
+  const diagnosticText = (diagnostic: ts.Diagnostic) =>
+    ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+
   const tsConfigFile = ts.findConfigFile(
     process.cwd(),
     ts.sys.fileExists,
@@ -118,16 +121,38 @@ export function getTsProgram(
       `[type-parser] - Could not find TypeScript config "${configName}".`,
     );
   }
-  const { config } = ts.readConfigFile(tsConfigFile, ts.sys.readFile);
-  const compilerOptions = ts.convertCompilerOptionsFromJson(
-    config.compilerOptions ?? {},
-    ".",
-  );
-  const program = ts.createProgram(globs, compilerOptions.options);
-  const exclusions =
-    config.exclude && config.exclude.length
-      ? [...config.exclude, "node_modules"]
-      : ["node_modules"];
+
+  const parseConfigHost: ts.ParseConfigFileHost = {
+    ...ts.sys,
+    onUnRecoverableConfigFileDiagnostic: (diagnostic: ts.Diagnostic) => {
+      throw new Error(
+        `[type-parser] - Could not parse TypeScript config "${configName}": ${diagnosticText(diagnostic)}`,
+      );
+    },
+  };
+
+  const parsedConfig = ts.getParsedCommandLineOfConfigFile(
+    tsConfigFile,
+    undefined,
+    parseConfigHost,
+  )!;
+
+  for (const diagnostic of parsedConfig.errors) {
+    const message = diagnosticText(diagnostic);
+    if (diagnostic.category === ts.DiagnosticCategory.Error) {
+      log.warn(`[type-parser] - TypeScript config error: ${message}`);
+    } else {
+      log.yellow(`[type-parser] - TypeScript config warning: ${message}`);
+    }
+  }
+
+  const rootFileNames = new Set<string>();
+  for (const fileName of [...parsedConfig.fileNames, ...globs]) {
+    rootFileNames.add(path.resolve(fileName));
+  }
+
+  const program = ts.createProgram([...rootFileNames], parsedConfig.options);
+  const exclusions = [...(parsedConfig.raw?.exclude ?? []), "node_modules"];
 
   typeScript = ts;
   typeChecker = program.getTypeChecker();
