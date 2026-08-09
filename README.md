@@ -55,6 +55,31 @@ export default {
 };
 ```
 
+## Options
+
+The plugin accepts a configuration object:
+
+```ts
+plugins: [
+  typeParserPlugin({
+    // 'none' (default), 'partial', or 'full'
+    parseObjectTypes: "full",
+    // Whether to parse method parameter types (default: false)
+    parseParameters: true,
+    // Name of the property that stores the parsed type (default: "parsedType")
+    propertyName: "parsedType",
+    // Maximum depth to expand nested types before bailing (default: 8)
+    maxParseDepth: 8,
+    // Maximum number of properties a type can have before bailing (default: 50)
+    maxParseProperties: 50,
+    // Shows output logs used for debugging
+    debug: false,
+    // Prevents the plugin from executing
+    skip: false,
+  }),
+];
+```
+
 ## Result
 
 It doesn't overwrite the existing property, but will create a new property with the parsed type value.
