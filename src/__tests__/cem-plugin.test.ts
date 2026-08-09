@@ -77,7 +77,7 @@ describe("type-parser", () => {
 
     // Assert
     expect(generic?.parsedType?.text).toEqual(
-      "'value1' | 'value2' | 'value3' | 'sports' | 'music' | 'art'",
+      "'sports' | 'music' | 'art' | 'value1' | 'value2' | 'value3'",
     );
   });
 
