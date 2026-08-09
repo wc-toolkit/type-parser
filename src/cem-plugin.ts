@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import path from "path";
-import fs from "fs";
 import { deepMerge, type Component } from "@wc-toolkit/cem-utilities";
 import { Logger } from "./logger.js";
 import type ts from "typescript";
@@ -15,16 +14,14 @@ export interface Options {
   parseParameters?: boolean;
   /** Determines the name of the property used in the manifest to store the parsed type */
   propertyName?: string;
+  /** Maximum depth to which nested types are expanded before bailing (default: 8) */
+  maxParseDepth?: number;
+  /** Maximum number of properties a type can have before bailing (default: 50) */
+  maxParseProperties?: number;
   /** Shows output logs used for debugging */
   debug?: boolean;
   /** Prevents plugin from executing */
   skip?: boolean;
-}
-
-interface AliasTypes {
-  [key: string]: {
-    [key: string]: string;
-  };
 }
 
 interface ParseContext {
@@ -34,8 +31,6 @@ interface ParseContext {
   visited: WeakSet<object>;
 }
 
-const aliasTypes: AliasTypes = {};
-const groupedTypes: AliasTypes = {};
 const loggedParseFailures = new Set<string>();
 const primitives = [
   "string",
@@ -63,10 +58,14 @@ let options: Options;
 let typeScript: typeof import("typescript");
 let log: Logger;
 
+let parsedTypeCache: WeakMap<object, string> = new WeakMap();
+
 const defaultOptions: Options = {
   parseObjectTypes: "none",
   parseParameters: false,
   propertyName: "parsedType",
+  maxParseDepth: MAX_PARSE_DEPTH,
+  maxParseProperties: MAX_PARSE_PROPERTIES,
   debug: false,
 };
 
@@ -154,20 +153,41 @@ export function getTsProgram(
   }
 
   program = ts.createProgram([...rootFileNames], parsedConfig.options);
-  const exclusions = [...(parsedConfig.raw?.exclude ?? []), "node_modules"];
 
   typeScript = ts;
   typeChecker = program.getTypeChecker();
 
+  const configDir = path.dirname(tsConfigFile);
+
+  const parsedGlobs = ts.parseJsonConfigFileContent(
+    {
+      include: globs,
+      exclude: parsedConfig.raw?.exclude ?? [],
+    },
+    parseConfigHost,
+    configDir,
+    undefined,
+    tsConfigFile,
+  );
+
+  const analyzeFiles = new Set<string>();
+  for (const fileName of parsedConfig.fileNames) {
+    analyzeFiles.add(path.resolve(fileName));
+  }
+  for (const fileName of parsedGlobs.fileNames) {
+    analyzeFiles.add(path.resolve(configDir, fileName));
+  }
+
   for (const sourceFile of program.getSourceFiles()) {
     currentFilename = path.resolve(sourceFile.fileName);
-    if (!exclusions.some((x: string) => currentFilename.includes(x))) {
-      aliasTypes[currentFilename] = {};
+    if (
+      !currentFilename.includes("node_modules") &&
+      analyzeFiles.has(currentFilename)
+    ) {
       visitNode(sourceFile);
     }
   }
 
-  groupTypesByName();
   return program;
 }
 
@@ -181,16 +201,8 @@ export function getProgram(): any {
 
 function resetParserState() {
   currentFilename = "";
-
-  for (const key of Object.keys(aliasTypes)) {
-    delete aliasTypes[key];
-  }
-
-  for (const key of Object.keys(groupedTypes)) {
-    delete groupedTypes[key];
-  }
-
   loggedParseFailures.clear();
+  parsedTypeCache = new WeakMap();
 }
 
 function normalizeModulePath(modulePath: string, cwd = process.cwd()) {
@@ -222,94 +234,222 @@ function createNestedParseContext(
   };
 }
 
-function getParsedType(
-  fileName: string,
-  typeName: string,
-  context = createParseContext(fileName, typeName),
-): string {
-  if (typeName?.includes("|")) {
-    return getUnionTypes(fileName, typeName);
+function getParameterNode(methodNode: any, paramName: string) {
+  if (!methodNode?.parameters) {
+    return undefined;
   }
 
-  if (typeName?.startsWith("{") && typeName?.endsWith("}")) {
-    return getObjectTypes(fileName, typeName);
-  }
-
-  if (
-    primitives.includes(typeName) ||
-    typeof groupedTypes[typeName] === "undefined"
-  ) {
-    return typeName;
-  }
-
-  if (typeof groupedTypes[typeName][fileName] !== "undefined") {
-    return groupedTypes[typeName][fileName];
-  }
-
-  if (Object.entries(groupedTypes[typeName]).length === 1) {
-    return Object.values(groupedTypes[typeName])[0];
-  }
-
-  if (typeChecker && typeScript && program) {
-    const sourceFile = program.getSourceFile(fileName);
-    if (sourceFile) {
-      const symbols = typeChecker.getSymbolsInScope(
-        sourceFile,
-        typeScript.SymbolFlags.Type,
-      );
-      const symbol = symbols.find((s: any) => s.name === typeName);
-      if (symbol) {
-        const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
-        return getFinalType(type, context);
-      }
-    }
-  }
-
-  return typeName;
-}
-
-function getUnionTypes(fileName: string, typeName: string): string {
-  return (
-    typeName
-      ?.split("|")
-      .map((part) => part.trim())
-      .filter((part) => part.length > 0)
-      ?.map((part) =>
-        getParsedType(fileName, part, createParseContext(fileName, part)),
-      )
-      .join(" | ") || ""
+  return methodNode.parameters.find(
+    (param: any) => param.name?.getText?.() === paramName,
   );
 }
 
-function getObjectTypes(fileName: string, typeName: string): string {
-  const parts = [
-    ...new Set(
-      typeName
-        ?.split(/[:{}]/)
-        .map((part) => part.trim())
-        .filter((part) => part.length > 0),
-    ),
-  ];
+function getTypeValue(member: any, memberNode: any) {
+  const fallbackText = member.type?.text;
 
-  parts.forEach((part) => {
-    const cleanPart = part.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-    typeName = typeName.replace(
-      cleanPart,
-      getParsedType(
-        fileName,
-        cleanPart,
-        createParseContext(fileName, cleanPart),
-      ),
+  if (memberNode) {
+    const type = getTypeAtNode(memberNode);
+    if (!type) {
+      return fallbackText;
+    }
+
+    if (!shouldExpandType(type)) {
+      return fallbackText;
+    }
+
+    const resolved = getFinalType(
+      type,
+      createParseContext(currentFilename, fallbackText),
     );
-  });
+    return normalizeUndefinedLast(resolved);
+  }
 
-  return typeName;
+  const sourceFile = program?.getSourceFile(currentFilename);
+  if (!sourceFile) {
+    return fallbackText;
+  }
+
+  return resolveTypeTextByName(sourceFile, fallbackText);
+}
+
+function getTypeAtNode(memberNode: any) {
+  try {
+    return typeChecker.getTypeAtLocation(memberNode);
+  } catch {
+    return undefined;
+  }
+}
+
+function shouldExpandType(type: any) {
+  if (options.parseObjectTypes !== "none") {
+    return true;
+  }
+
+  if (type.flags & typeScript.TypeFlags.Enum) {
+    return true;
+  }
+
+  const isObjectLike =
+    type.isClassOrInterface?.() || type.flags & typeScript.TypeFlags.Object;
+  if (!isObjectLike) {
+    return true;
+  }
+
+  return Boolean(type.aliasSymbol);
+}
+
+function resolveTypeTextByName(
+  sourceFile: any,
+  typeText?: string,
+): string | undefined {
+  if (!typeText) {
+    return typeText;
+  }
+
+  const typeName = typeText.trim();
+  if (typeName.startsWith("{") && typeName.endsWith("}")) {
+    return typeText;
+  }
+
+  if (typeName.includes("|")) {
+    return splitUnionMembers(typeName)
+      .map((part) => resolveTypeTextByName(sourceFile, part) ?? part)
+      .join(" | ");
+  }
+
+  if (primitives.includes(typeName)) {
+    return typeText;
+  }
+
+  const symbol = findTypeSymbol(sourceFile, typeName);
+  if (!symbol) {
+    return typeText;
+  }
+
+  const type = getDeclaredTypeOfSymbol(symbol);
+  if (!type || !shouldExpandType(type)) {
+    return typeText;
+  }
+
+  const resolved = getFinalType(
+    type,
+    createParseContext(currentFilename, typeName),
+  );
+  return normalizeUndefinedLast(resolved);
+}
+
+function findTypeSymbol(sourceFile: any, name: string) {
+  let symbol: any;
+  const visit = (node: any) => {
+    if (symbol) {
+      return;
+    }
+
+    if (
+      (typeScript.isTypeAliasDeclaration(node) ||
+        typeScript.isInterfaceDeclaration(node) ||
+        typeScript.isEnumDeclaration(node)) &&
+      node.name?.text === name
+    ) {
+      symbol = typeChecker.getSymbolAtLocation(node.name);
+      return;
+    }
+
+    typeScript.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  if (symbol) {
+    return symbol;
+  }
+
+  for (const stmt of sourceFile.statements) {
+    if (!typeScript.isImportDeclaration(stmt) || !stmt.importClause) {
+      continue;
+    }
+
+    const namedBindings = stmt.importClause.namedBindings;
+    if (!namedBindings || !typeScript.isNamedImports(namedBindings)) {
+      continue;
+    }
+
+    const specifier = namedBindings.elements.find(
+      (el: any) => el.name.text === name,
+    );
+    if (specifier) {
+      return typeChecker.getSymbolAtLocation(specifier.name);
+    }
+  }
+
+  return undefined;
+}
+
+function getDeclaredTypeOfSymbol(symbol: any) {
+  if (symbol.flags & typeScript.SymbolFlags.Alias) {
+    return typeChecker.getDeclaredTypeOfSymbol(
+      typeChecker.getAliasedSymbol(symbol),
+    );
+  }
+  return typeChecker.getDeclaredTypeOfSymbol(symbol);
+}
+
+function normalizeUndefinedLast(typeText: string): string {
+  const members = splitUnionMembers(typeText);
+  if (!members.includes("undefined")) {
+    return typeText;
+  }
+
+  return [
+    ...members.filter((member) => member !== "undefined"),
+    "undefined",
+  ].join(" | ");
+}
+
+function splitUnionMembers(typeText: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let inQuote = false;
+
+  for (let i = 0; i < typeText.length; i++) {
+    const char = typeText[i];
+    if (char === "'" || char === '"') {
+      if (i === 0 || typeText[i - 1] !== "\\") {
+        inQuote = !inQuote;
+      }
+    }
+
+    if (char === "|" && !inQuote) {
+      parts.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  parts.push(current.trim());
+  return parts;
 }
 
 function getFinalType(type: any, context: ParseContext): string {
+  if (context.depth === 0 && type != null && parsedTypeCache.has(type)) {
+    return parsedTypeCache.get(type)!;
+  }
+
+  const result = getFinalTypeUncached(type, context);
+  if (context.depth === 0 && type != null) {
+    parsedTypeCache.set(type, result);
+  }
+  return result;
+}
+
+function getFinalTypeUncached(type: any, context: ParseContext): string {
   const fallbackText = getSafeTypeName(type, context.fallbackText);
   if (shouldBailOnType(type, context)) {
     return fallbackText;
+  }
+
+  if (type.flags & typeScript.TypeFlags.Boolean) {
+    return "boolean";
   }
 
   if (type.isUnion()) {
@@ -339,9 +479,6 @@ function getFinalType(type: any, context: ParseContext): string {
   }
   if (type.flags & typeScript.TypeFlags.Number) {
     return "number";
-  }
-  if (type.flags & typeScript.TypeFlags.Boolean) {
-    return "boolean";
   }
   if (type.flags & typeScript.TypeFlags.BooleanLiteral) {
     return String((type as any).intrinsicName);
@@ -422,11 +559,12 @@ function getFinalType(type: any, context: ParseContext): string {
     context.visited.add(trackableType);
 
     const properties = typeChecker.getPropertiesOfType(type);
-    if (properties.length > MAX_PARSE_PROPERTIES) {
+    const maxProperties = options.maxParseProperties ?? MAX_PARSE_PROPERTIES;
+    if (properties.length > maxProperties) {
       context.visited.delete(trackableType);
       logParseFailure(
         type,
-        `type has ${properties.length} properties, which exceeds the limit of ${MAX_PARSE_PROPERTIES}`,
+        `type has ${properties.length} properties, which exceeds the limit of ${maxProperties}`,
         context,
       );
       return fallbackText;
@@ -465,7 +603,9 @@ function getPropertyTypeText(
   let typeStr: string;
   let isOptional = false;
 
-  if (propType.isUnion && propType.isUnion()) {
+  if (propType.flags & typeScript.TypeFlags.Boolean) {
+    typeStr = "boolean";
+  } else if (propType.isUnion && propType.isUnion()) {
     const types = propType.types;
     const hasUndefined = types.some(
       (t: any) => t.flags & typeScript.TypeFlags.Undefined,
@@ -528,10 +668,11 @@ function getPropertyTypeText(
 }
 
 function shouldBailOnType(type: ts.Type, context: ParseContext): boolean {
-  if (context.depth >= MAX_PARSE_DEPTH) {
+  const maxDepth = options.maxParseDepth ?? MAX_PARSE_DEPTH;
+  if (context.depth >= maxDepth) {
     logParseFailure(
       type,
-      `type expansion exceeded the maximum depth of ${MAX_PARSE_DEPTH}`,
+      `type expansion exceeded the maximum depth of ${maxDepth}`,
       context,
     );
     return true;
@@ -621,7 +762,7 @@ function visitNode(node: any) {
   ) {
     const symbol = typeChecker.getSymbolAtLocation(node.name);
     if (symbol) {
-      const type = typeChecker.getDeclaredTypeOfSymbol(symbol);
+      const type = getDeclaredTypeOfSymbol(symbol);
       const finalType = getFinalType(
         type,
         createParseContext(currentFilename, node.name.text),
@@ -629,25 +770,13 @@ function visitNode(node: any) {
       log.log(
         `Type alias '${node.name.text}' has final computed type: ${finalType}`,
       );
-      aliasTypes[currentFilename][node.name.text] = finalType;
     }
   }
 
   typeScript.forEachChild(node, visitNode);
 }
 
-function groupTypesByName() {
-  for (const alias in aliasTypes) {
-    for (const type in aliasTypes[alias]) {
-      if (!groupedTypes[type]) {
-        groupedTypes[type] = {};
-      }
-      groupedTypes[type][alias] = aliasTypes[alias][type];
-    }
-  }
-}
-
-function analyzePhase({ ts, node, moduleDoc, context }: any) {
+function analyzePhase({ ts, node, moduleDoc }: any) {
   moduleDoc.path = normalizeModulePath(moduleDoc.path);
   if (node.kind === ts.SyntaxKind.SourceFile) {
     currentFilename = path.resolve(node.fileName);
@@ -662,7 +791,7 @@ function analyzePhase({ ts, node, moduleDoc, context }: any) {
     return;
   }
 
-  updateParsedTypes(component, context);
+  updateParsedTypes(component, node);
 }
 
 function getComponent(node: any, moduleDoc: any) {
@@ -685,55 +814,26 @@ function getTypedMembers(component: Component) {
   );
 }
 
-function getTypeValue(item: any, context: any) {
-  const importedType = context?.imports?.find(
-    (i: any) => i.name === item.type?.text,
-  );
-
-  if (!importedType) {
-    return getParsedType(currentFilename, item.type.text);
-  }
-
-  const resolvedPath = getResolvedImportPath(currentFilename, importedType);
-  return getParsedType(
-    resolvedPath,
-    importedType.name,
-    createParseContext(resolvedPath, importedType.name),
-  );
-}
-
-function getResolvedImportPath(importPath: string, importedType: any) {
-  let resolvedPath = path.resolve(
-    path.dirname(currentFilename),
-    importedType.importPath,
-  );
-
-  if (aliasTypes[resolvedPath]) {
-    return resolvedPath;
-  }
-
-  if (aliasTypes[resolvedPath + ".ts"]) {
-    resolvedPath += ".ts";
-  } else if (resolvedPath.endsWith(".js")) {
-    resolvedPath = `${resolvedPath}`.replace(".js", ".ts");
-  } else if (resolvedPath.endsWith(".d.ts")) {
-    resolvedPath = currentFilename;
-  } else if (fs.existsSync(resolvedPath + ".d.ts")) {
-    resolvedPath = currentFilename;
-  }
-
-  return resolvedPath;
-}
-
-function updateParsedTypes(component: Component, context: any) {
+function updateParsedTypes(component: Component, classNode: any) {
   const typedMembers = getTypedMembers(component);
   const propName = options.propertyName || "parsedType";
 
+  const memberNodes = new Map<string, any>();
+  for (const node of classNode?.members ?? []) {
+    const nodeName = node.name?.getText?.();
+    if (nodeName) {
+      memberNodes.set(nodeName, node);
+    }
+  }
+
   typedMembers.forEach((member) => {
+    const memberNode = memberNodes.get(member.fieldName ?? member.name);
+
     if (member.parameters?.length) {
       member.parameters.forEach((param: any, i: number) => {
         if (param.type?.text) {
-          const typeValue = getTypeValue(param, context);
+          const paramNode = getParameterNode(memberNode, param.name);
+          const typeValue = getTypeValue(param, paramNode);
           if (typeValue !== param.type.text) {
             member.parameters[i][propName] = {
               text: typeValue.replace(/"/g, "'"),
@@ -741,8 +841,8 @@ function updateParsedTypes(component: Component, context: any) {
           }
         }
       });
-    } else {
-      const typeValue = getTypeValue(member, context);
+    } else if (member.type?.text) {
+      const typeValue = getTypeValue(member, memberNode);
       if (typeValue !== member.type.text) {
         member[propName] = {
           text: typeValue.replace(/"/g, "'"),
