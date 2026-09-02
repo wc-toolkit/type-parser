@@ -796,9 +796,39 @@ function analyzePhase({ ts, node, moduleDoc }: any) {
 
 function getComponent(node: any, moduleDoc: any) {
   const className = node.name.getText();
-  return moduleDoc.declarations.find(
-    (dec: Component) => dec.name === className,
-  ) as Component | undefined;
+  const declarations = (moduleDoc.declarations ?? []) as Component[];
+
+  const factoryName = getEnclosingFactoryName(node);
+  if (factoryName) {
+    const mixin = declarations.find(
+      (dec) => (dec as any).kind === "mixin" && dec.name === factoryName,
+    );
+    if (mixin) {
+      return mixin as Component;
+    }
+  }
+
+  return declarations.find((dec) => dec.name === className) as
+    | Component
+    | undefined;
+}
+
+function getEnclosingFactoryName(node: any): string | undefined {
+  let current = node.parent;
+  while (current) {
+    if (typeScript.isVariableDeclaration(current) && current.name) {
+      return current.name.getText();
+    }
+    if (
+      (typeScript.isFunctionDeclaration(current) ||
+        typeScript.isFunctionExpression(current)) &&
+      current.name
+    ) {
+      return current.name.getText();
+    }
+    current = current.parent;
+  }
+  return undefined;
 }
 
 function getTypedMembers(component: Component) {
